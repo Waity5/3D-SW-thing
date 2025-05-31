@@ -1,0 +1,8 @@
+__pycache__
+*.bak
+*.dbs
+*.backup*
+*.autosave*
+DOOM.WAD
+cache.txt
+Citrus Doom/_build/libs/LifeBoatAPI/
