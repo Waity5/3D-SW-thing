@@ -12,7 +12,9 @@ if __name__ == '__main__':
 
     # Using an existing stl file:
     path = ".\\stl\\"
+    #your_mesh = mesh.Mesh.from_file(path+'monkey.stl')
     your_mesh = mesh.Mesh.from_file(path+'buff_monkey.stl')
+    #your_mesh = mesh.Mesh.from_file(path+'blender_cube.stl')
 
     # Or creating a new mesh (make sure not to overwrite the `mesh` import by
     # naming it `mesh`):
@@ -153,7 +155,7 @@ if __name__ == '__main__':
         end = text.find(find_end,start)
         if i==1:
             None
-            print(code.split("\n")[107-1])
+            print(code.split("\n")[134-1])
             
 
         assert start>0 and end>0, "Code insertion search terms not in base vehicle file"

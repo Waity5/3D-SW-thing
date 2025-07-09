@@ -43,7 +43,7 @@ tickRate=62.5
 angleConvert=pi/180
 moveSpeed=3/tickRate
 rotateSpeed=90*angleConvert/tickRate
-fov=90
+fov=90*angleConvert
 screenScale=1
 
 
@@ -193,7 +193,7 @@ function onTick()
 					d2[j]=p3p[j]-p1p[j]
 				end
 				cr={}
-				curTri[7]=cr
+				curTri[8]=cr
 				
 				cr[1]=d1[2]*d2[3] - d1[3]*d2[2]
 				cr[2]=d1[3]*d2[1] - d1[1]*d2[3]
@@ -207,24 +207,51 @@ function onTick()
 			p1 = M[1][curTri[1]]
 			p2 = M[1][curTri[2]]
 			p3 = M[1][curTri[3]]
-			curTri[8]=mx(p1[5],p2[5],p3[5])
-			a=curTri[7]
+			curTri[7]=mx(p1[5],p2[5],p3[5])
+			a=curTri[8]
 			b=p1[2]
 			if a[1]*b[1]+a[2]*b[2]+a[3]*b[3]>0 then
 				sideVal=p1[6]+p2[6]+p3[6]
 				if sideVal == 3 then
-					renderTris[#renderTris+1] = curTri
+					renderTris[#renderTris+1] = {p1[4],p2[4],p3[4],curTri[4],curTri[5],curTri[6],curTri[7]}
+				elseif sideVal >= -1 then
+					if p1[6]==-sideVal then
+						screenPoint1=p1[4]
+						screenPoint2=p2[4]
+						screenPoint3=p3[4]
+					elseif p2[6]==-sideVal then
+						screenPoint1=p2[4]
+						screenPoint2=p1[4]
+						screenPoint3=p3[4]
+					else
+						screenPoint1=p3[4]
+						screenPoint2=p2[4]
+						screenPoint3=p1[4]
+					end
+					if sideVal == 1 then
+						screenPoint4=add(mul(sub(screenPoint2,screenPoint1),1000),screenPoint2)
+						screenPoint5=add(mul(sub(screenPoint3,screenPoint1),1000),screenPoint3)
+						--renderTris[#renderTris+1] = {screenPoint2,screenPoint4,screenPoint3,255,0,0,curTri[7]}
+						--renderTris[#renderTris+1] = {screenPoint3,screenPoint4,screenPoint5,0,0,255,curTri[7]}
+						renderTris[#renderTris+1] = {screenPoint2,screenPoint4,screenPoint3,curTri[4],curTri[5],curTri[6],curTri[7]}
+						renderTris[#renderTris+1] = {screenPoint3,screenPoint4,screenPoint5,curTri[4],curTri[5],curTri[6],curTri[7]}
+					else
+						screenPoint4=add(mul(sub(screenPoint1,screenPoint2),1000),screenPoint2)
+						screenPoint5=add(mul(sub(screenPoint1,screenPoint3),1000),screenPoint3)
+						--renderTris[#renderTris+1] = {screenPoint1,screenPoint4,screenPoint5,255,0,255,curTri[7]}
+						renderTris[#renderTris+1] = {screenPoint1,screenPoint4,screenPoint5,curTri[4],curTri[5],curTri[6],curTri[7]}
+					end					
 				end
 			end
 		end
 		
-		table.sort(renderTris,function(a,b)return a[8]>b[8]end)
+		table.sort(renderTris,function(a,b)return a[7]>b[7]end)
 		
 		init=falseVar
 	end
 
 	httpTk=httpTk+1
-	async.httpGet(8,"")
+	--async.httpGet(8,"")
 end
 
 function onDraw()
@@ -235,7 +262,6 @@ function onDraw()
 	w2=w/2
 	h2=h/2
 	screenScale = tan(fov/2)*w2
-	
 	
 	
 	stCl(255,255,255)
@@ -253,9 +279,9 @@ function onDraw()
 		
 		for i=1,#renderTris do
 			curTri = renderTris[i]
-			p1 = M[1][curTri[1]][4]
-			p2 = M[1][curTri[2]][4]
-			p3 = M[1][curTri[3]][4]
+			p1 = curTri[1]
+			p2 = curTri[2]
+			p3 = curTri[3]
 			stCl(curTri[4],curTri[5],curTri[6])
 			tri(p1[1]+w2,p1[2]+h2,p2[1]+w2,p2[2]+h2,p3[1]+w2,p3[2]+h2)
 		end
