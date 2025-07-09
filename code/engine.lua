@@ -13,15 +13,15 @@ ipairsVar=ipairs
 abs=m.abs
 tableRemove=table.remove
 str=string
+sin=m.sin
+cos=m.cos
+tan=m.tan
 
 function add(a,b)return{(a[1]+b[1]),(a[2]+b[2])}end
 function cross(a,b)return a[1]*b[2]-a[2]*b[1]end
 function sub(a,b)return{(a[1]-b[1]),(a[2]-b[2])}end
 function mul(a,b)return{a[1]*b,a[2]*b}end
 function wrap(a)return ((a+180)%360)-180 end
-function sin(a)return m.sin(a/180*pi)end
-function cos(a)return m.cos(a/180*pi)end
-function tan(a)return m.tan(a/180*pi)end
 function at(a)return m.atan(a)*180/pi end
 function at2(a)return m.atan(a[2],a[1])*180/pi end
 function clmp(a,b,c)return mn(mx(b,a),c)end
@@ -39,9 +39,11 @@ tick=0
 camPos={0,0,-10}
 camRot={0,0,0}
 tickRate=62.5
+angleConvert=pi/180
 moveSpeed=3/tickRate
-rotateSpeed=90/tickRate
+rotateSpeed=90*angleConvert/tickRate
 fov=90
+screenScale=1
 
 
 function httpReply(a,b,c)
@@ -51,7 +53,7 @@ end
 
 function onTick()
 	for j=1,1 do
-		if not loaded then
+		if gB(32) and not loaded then
 			rom=property.getText(romCr)
 			i=1
 			nm=""
@@ -97,7 +99,6 @@ function onTick()
 			for i=1,#M[1] do
 				M[1][i]={M[1][i],{},0}
 			end
-			init=falseVar
 		end
 		camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
 		camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
@@ -145,6 +146,8 @@ function onTick()
 			{-c_b*s_a , s_b , c_a*c_b}
 		}
 		
+		cameraRotationVector = {-s_a*c_b,s_b,c_a*c_b}
+		
 		
 		for i=1,#M[1] do
 			crPoint=M[1][i]
@@ -152,7 +155,7 @@ function onTick()
 				crPoint[2][j]=crPoint[1][j]-camPos[j]
 			end
 			distances=crPoint[2]
-			crPoint[4]=sqrt(distances[1]^2 + distances[2]^2 + distances[3]^2)
+			crPoint[5]=sqrt(distances[1]^2 + distances[2]^2 + distances[3]^2)
 			
 			
 			for curMat = 1,1 do
@@ -165,41 +168,62 @@ function onTick()
 					end
 					newPoint[j]=cr
 				end
-				crPoint[2]=newPoint
+				crPoint[3]=newPoint
 			end
 			
-			crPoint[3]={crPoint[2][1]*screenScale/crPoint[2][3],
-			-crPoint[2][2]*screenScale/crPoint[2][3]}
-			
+			crPoint[4]={crPoint[3][1]*screenScale/crPoint[3][3],
+			-crPoint[3][2]*screenScale/crPoint[3][3]}
+			crPoint[6]=crPoint[3][3]>0 and 1 or -1
 			
 		end
 		
+		if init then
+			for i=1,#M[2] do
+				curTri = M[2][i]
+				p1 = M[1][curTri[1]]
+				p2 = M[1][curTri[2]]
+				p3 = M[1][curTri[3]]
+				p1p = p1[1]
+				p2p = p2[1]
+				p3p = p3[1]
+				d1,d2={},{}
+				for j=1,3 do
+					d1[j]=p2p[j]-p1p[j]
+					d2[j]=p3p[j]-p1p[j]
+				end
+				cr={}
+				curTri[7]=cr
+				
+				cr[1]=d1[2]*d2[3] - d1[3]*d2[2]
+				cr[2]=d1[3]*d2[1] - d1[1]*d2[3]
+				cr[3]=d1[1]*d2[2] - d1[2]*d2[1]
+			end
+		end
+		
+		renderTris = {}
 		for i=1,#M[2] do
 			curTri = M[2][i]
 			p1 = M[1][curTri[1]]
 			p2 = M[1][curTri[2]]
 			p3 = M[1][curTri[3]]
-			p1p = p1[2]
-			p2p = p2[2]
-			p3p = p3[2]
-			d1,d2={},{}
-			for j=1,3 do
-				d1[j]=p2p[j]-p1p[j]
-				d2[j]=p3p[j]-p1p[j]
+			curTri[8]=mx(p1[5],p2[5],p3[5])
+			a=curTri[7]
+			b=p1[2]
+			if a[1]*b[1]+a[2]*b[2]+a[3]*b[3]>0 then
+				sideVal=p1[6]+p2[6]+p3[6]
+				if sideVal == 3 then
+					renderTris[#renderTris+1] = curTri
+				end
 			end
-			cr={}
-			curTri[7]=cr
-			
-			cr[3]=d1[1]*d2[2] - d1[2]*d2[1]
-			
-			curTri[8]=mx(p1[4],p2[4],p3[4])
 		end
 		
-		table.sort(M[2],function(a,b)return a[8]>b[8]end)
+		table.sort(renderTris,function(a,b)return a[8]>b[8]end)
+		
+		init=falseVar
 	end
 
 	httpTk=httpTk+1
-	--async.httpGet(8,"")
+	async.httpGet(8,"")
 end
 
 function onDraw()
@@ -213,26 +237,26 @@ function onDraw()
 	
 	
 	
+	stCl(255,255,255)
+	--text(1,1,"TPS: ")
+	--text(26,1,httpTkP)
 	
-	--text(0,0,httpTkP)
 	
-	
-	--if rom=="" then
+	--for i=1,#allM do
 	--	stCl(255,255,255)
-	--	text(0,0,#M[2])
+	--	text(0,i*6-5,allM[i])
+	--	text(20,i*6-5,M[allM[i]])
 	--end
 	
 	if loaded then
 		
-		for i=1,#M[2] do
-			curTri = M[2][i]
-			if curTri[7][3]>0 then
-				p1 = M[1][curTri[1]][3]
-				p2 = M[1][curTri[2]][3]
-				p3 = M[1][curTri[3]][3]
-				stCl(curTri[4],curTri[5],curTri[6])
-				tri(p1[1]+w2,p1[2]+h2,p2[1]+w2,p2[2]+h2,p3[1]+w2,p3[2]+h2)
-			end
+		for i=1,#renderTris do
+			curTri = renderTris[i]
+			p1 = M[1][curTri[1]][4]
+			p2 = M[1][curTri[2]][4]
+			p3 = M[1][curTri[3]][4]
+			stCl(curTri[4],curTri[5],curTri[6])
+			tri(p1[1]+w2,p1[2]+h2,p2[1]+w2,p2[2]+h2,p3[1]+w2,p3[2]+h2)
 		end
 	end
 end

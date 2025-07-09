@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     # Using an existing stl file:
     path = ".\\stl\\"
-    your_mesh = mesh.Mesh.from_file(path+'monkey.stl')
+    your_mesh = mesh.Mesh.from_file(path+'buff_monkey.stl')
 
     # Or creating a new mesh (make sure not to overwrite the `mesh` import by
     # naming it `mesh`):
@@ -153,7 +153,7 @@ if __name__ == '__main__':
         end = text.find(find_end,start)
         if i==1:
             None
-            print(code.split("\n")[100-1])
+            print(code.split("\n")[107-1])
             
 
         assert start>0 and end>0, "Code insertion search terms not in base vehicle file"
@@ -186,10 +186,11 @@ if __name__ == '__main__':
                         except:
                             print(k,type(k))
                             halt
+                        #k=int(k)
                         out_numbs.append(k)
 
                 for j in out_numbs:
-                    temp = str(j)
+                    temp = str(round(j,3))
                     temp = temp[:-1]+chr(ord(temp[-1])+17)
                     temp_len = len(temp)
                     if len(parts)==0 or len(parts[-1])+temp_len>curmax:
