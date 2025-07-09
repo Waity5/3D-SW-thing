@@ -59,7 +59,7 @@ if __name__ == '__main__':
     pnt = ""
 
     for i in points:
-        packets.append((1,i))
+        packets.append((1,(i[0],i[2],i[1])))
 
     #pnt = ""
     #for i in vectors_indexed:
@@ -153,27 +153,39 @@ if __name__ == '__main__':
         end = text.find(find_end,start)
         if i==1:
             None
-            print(code.split("\n")[85-1])
+            print(code.split("\n")[100-1])
             
 
         assert start>0 and end>0, "Code insertion search terms not in base vehicle file"
         
         text = text[:start+len(find_start)]+code+text[end:]
 
+    #packets = [(1,(1,2)), (1,(1,2)), (1,(1,2))]
+
     type_map = {20:"colours",21:"wall textures",22:"flat textures",23:"sprites",24:"sky textures",25:"orange"}
     parts = []
     cur=[]
     t=0
     tt=0
-    for index in range(len(packets)):
-        i = packets[index]
-        #if i[0]==31:
-        #    print(i)
-        if len(cur)==0 or len(cur[0][1])!=len(i[1]) or cur[0][0]!=i[0] or index==len(packets)-1:
+    t1=0
+    num_packets = len(packets)
+    for index in range(num_packets+1):
+        if index<num_packets:
+            i = packets[index]
+            if i[0]==1:
+                t1+=1
+            #if index>2900:
+            #    print(i)
+        if len(cur)==0 or len(cur[0][1])!=len(i[1]) or cur[0][0]!=i[0] or index==num_packets:
             if len(cur)>0:
                 out_numbs = [cur[0][0],len(cur[0][1]),len(cur)]
                 for j in cur:
                     for k in j[1]:
+                        try:
+                            assert type(k)==type(1.0) or type(k)==type(1) or type(k)==type(numpy.float32()) or type(k)==type(numpy.float64())
+                        except:
+                            print(k,type(k))
+                            halt
                         out_numbs.append(k)
 
                 for j in out_numbs:
@@ -198,6 +210,14 @@ if __name__ == '__main__':
 
     print()
     print(tt//1024,"KiB total")
+    print(t1)
+
+    sizes = [len(i) for i in parts]
+    
+    print(len(parts),"text boxes total")
+    print("hypothetically could be",sum(sizes)/curmax,"text boxes")
+    print("largest text box is",max(sizes))
+    print("average text box is",sum(sizes)/len(sizes))
     
     
     #[(print(i) if (len(i)==largest) else 0) for i in packets]

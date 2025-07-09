@@ -9,6 +9,7 @@ def compress(text,print_vars=False,delete_newlines=False):
                ]
     include = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
     includeNum = "0123456789"
+    point_exclude = ".:"
     is_string = False
 
     variables = []
@@ -50,6 +51,7 @@ def compress(text,print_vars=False,delete_newlines=False):
         text = text[1:]
     #print([text[:25]])  
 
+    bad_var=""
     if text[2:5]=='=""':
         bad_var = text[0:2]
         text = text[5:]
@@ -60,8 +62,11 @@ def compress(text,print_vars=False,delete_newlines=False):
         text = text[4:]
         text = text.replace(bad_var,'""')
 
+    if bad_var != "":
+        print("\t"+bad_var)
     
-
+    
+    text=" "+text
     cur=""
     valid=True
     for index in range(len(text)):
@@ -80,7 +85,7 @@ def compress(text,print_vars=False,delete_newlines=False):
                         counts.append(1)
                     
                 cur=""
-                valid=(i!="." or text[index:index+2]=="..")
+                valid=((not i in point_exclude) or text[index:index+2]=="..")
                 
 
         if i == '"':
@@ -115,8 +120,8 @@ def compress(text,print_vars=False,delete_newlines=False):
 
     #print(replacements)
 
-    is_string = False
-
+    is_string = False 
+    
     cur=""
     for index in range(len(text)-1,-1,-1):
         i=text[index]
@@ -126,7 +131,7 @@ def compress(text,print_vars=False,delete_newlines=False):
             cur=i+cur
         else:
             if cur!="":
-                valid=(i!="." or text[index-1:index+1]=="..")
+                valid=((not i in point_exclude) or text[index-1:index+1]=="..")
                 if valid and (not cur in exclude) and (not cur[0] in includeNum) and (not is_string):
                     text = text[:index+1] + replacements[variables.index(cur)] + text[index+len(cur)+1:]
                 cur=""
@@ -143,12 +148,12 @@ def compress(text,print_vars=False,delete_newlines=False):
                 text = text[:cur_index] + text[cur_index+1:]
             #print([text[cur_index-1:cur_index+10]])
             cur_index += 1
-
+    text=text[1:]
     
 
     print("\t",len(text),"end characters")
 
-    return text[1:]
+    return text
 
 if __name__ == '__main__':
     file = open("in.txt")
