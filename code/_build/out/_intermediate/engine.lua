@@ -48,6 +48,22 @@ fov=90*angleConvert
 screenScale=1
 tick=0
 
+function vectorToQuaternion(vec)
+	if vec[1]==0 and vec[2]==0 and vec[3]==0 then
+		return {1,0,0,0}
+	else
+		return {0,vec[1],vec[2],vec[3]}
+	end
+end
+
+function updateQuaternionByVector(quat,vec)
+	local newQuat=multQuaternionByQuaternion(quat,vectorToQuaternion(vec))
+	for i=1,4 do
+		newQuat[i]=quat[i] + newQuat[i]*0.5
+	end
+	return newQuat
+end
+
 function multQuaternionByQuaternion(quat1,quat2)
 	local w1,x1,y1,z1=unpack(quat1)
 	local w2,x2,y2,z2=unpack(quat2)
@@ -60,13 +76,13 @@ function multQuaternionByQuaternion(quat1,quat2)
 end
 
 function addQuaternionByQuaternion(quat1,quat2)
-	newQuat={}
+	local newQuat={}
 	for i =1,4 do newQuat[i]=quat1+quat2 end
 	return newQuat
 end
 
 function multVectorByMatrix(vec,matrix)
-	newVec={}
+	local newVec={}
 	for j = 1,3 do
 		cr=0
 		for k = 1,3 do
@@ -147,11 +163,11 @@ function onTick()
 				M[1][i]={M[1][i],{},0}
 			end
 		end
-		camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
-		camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
+		--camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
+		--camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
 		--camRot[3]=camRot[3]+gN(1)*rotateSpeed
-		camRot[1]=camRot[1]-gN(3)*rotateSpeed
-		camRot[2]=camRot[2]+gN(4)*rotateSpeed
+		--camRot[1]=camRot[1]-gN(3)*rotateSpeed
+		--camRot[2]=camRot[2]+gN(4)*rotateSpeed
 		if gB(1) then
 			camRot[3]=camRot[3]-rotateSpeed
 		end
@@ -195,8 +211,8 @@ function onTick()
 		
 		cameraRotationVector = {-s_a*c_b,s_b,c_a*c_b}
 		
-		rotationThing = norm4({1,0,0.01,0})
-		monkeyRotationQuaternion = multQuaternionByQuaternion(monkeyRotationQuaternion,rotationThing)
+		keyboardRotationInput = {-0.01*gN(2),0.01*gN(1),0.01*gN(3)}
+		monkeyRotationQuaternion = norm4(updateQuaternionByVector(monkeyRotationQuaternion,keyboardRotationInput))
 		
 		monkeyRotationMatrix = quaternionToMatrix(norm4(monkeyRotationQuaternion))
 		
@@ -315,6 +331,15 @@ function onDraw()
 	--end
 	
 	if loaded then
+		text(1,1,"Quaternion:")
+		for i=1,4 do
+			text(1,i*6+1,monkeyRotationQuaternion[i])
+		end
+		text(1,37,"Keyboard input:")
+		for i=1,3 do
+			text(1,i*6+37,keyboardRotationInput[i])
+		end
+		
 		
 		for i=1,#renderTris do
 			curTri = renderTris[i]
