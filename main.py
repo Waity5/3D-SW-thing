@@ -12,8 +12,8 @@ if __name__ == '__main__':
 
     # Using an existing stl file:
     path = ".\\stl\\"
-    #your_mesh = mesh.Mesh.from_file(path+'monkey.stl')
-    your_mesh = mesh.Mesh.from_file(path+'buff_monkey.stl')
+    your_mesh = mesh.Mesh.from_file(path+'monkey.stl')
+    #your_mesh = mesh.Mesh.from_file(path+'buff_monkey.stl')
     #your_mesh = mesh.Mesh.from_file(path+'blender_cube.stl')
 
     # Or creating a new mesh (make sure not to overwrite the `mesh` import by

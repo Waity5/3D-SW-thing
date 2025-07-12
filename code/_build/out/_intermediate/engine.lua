@@ -17,6 +17,7 @@ str=string
 sin=m.sin
 cos=m.cos
 tan=m.tan
+unpack=table.unpack
 
 function add(a,b)return{(a[1]+b[1]),(a[2]+b[2])}end
 function cross(a,b)return a[1]*b[2]-a[2]*b[1]end
@@ -37,7 +38,7 @@ loaded=falseVar
 init=trueVar
 httpTk=0
 tick=0
-camPos={0,0,-10}
+camPos={0,0,-3}
 camRot={0,0,0}
 tickRate=62.5
 angleConvert=pi/180
@@ -45,7 +46,50 @@ moveSpeed=3/tickRate
 rotateSpeed=90*angleConvert/tickRate
 fov=90*angleConvert
 screenScale=1
+tick=0
 
+function multQuaternionByQuaternion(quat1,quat2)
+	local w1,x1,y1,z1=unpack(quat1)
+	local w2,x2,y2,z2=unpack(quat2)
+	return {
+		w1*w2-x1*x2-y1*y2-z1*z2,
+		w1*x2+x1*w2-y1*z2-z1*y2,
+		w1*y2-x1*z2+y1*w2-z1*x2,
+		w1*z2+x1*y2-y1*x2+z1*w2
+	}
+end
+
+function addQuaternionByQuaternion(quat1,quat2)
+	newQuat={}
+	for i =1,4 do newQuat[i]=quat1+quat2 end
+	return newQuat
+end
+
+function multVectorByMatrix(vec,matrix)
+	newVec={}
+	for j = 1,3 do
+		cr=0
+		for k = 1,3 do
+			cr=cr + vec[k]*matrix[j][k]
+		end
+		newVec[j]=cr
+	end
+	return newVec
+end
+
+function norm4(a,correction)
+	correction=1/sqrt(a[1]^2 + a[2]^2 + a[3]^2 + a[4]^2)
+	return {a[1]*correction, a[2]*correction, a[3]*correction, a[4]*correction}
+end
+
+function quaternionToMatrix(quat,w,x,y,z)
+	w,x,y,z=unpack(quat)
+	return {
+		{1-(2*y*y + 2*z*z), 2*x*y + 2*z*w,     2*x*z - 2*y*w},
+		{2*x*y - 2*z*w,     1-(2*x*x + 2*z*z), 2*y*z + 2*x*w},
+		{2*x*z + 2*y*w,     2*y*z - 2*x*w,     1-(2*x*x + 2*y*y)},
+	}
+end
 
 function httpReply(a,b,c)
 	httpTkP=httpTk//2
@@ -96,7 +140,9 @@ function onTick()
 	end
 
 	if loaded then
+		tick = tick+1
 		if init then
+			monkeyRotationQuaternion={1,0,0,0}
 			for i=1,#M[1] do
 				M[1][i]={M[1][i],{},0}
 			end
@@ -149,28 +195,21 @@ function onTick()
 		
 		cameraRotationVector = {-s_a*c_b,s_b,c_a*c_b}
 		
+		rotationThing = norm4({1,0,0.01,0})
+		monkeyRotationQuaternion = multQuaternionByQuaternion(monkeyRotationQuaternion,rotationThing)
+		
+		monkeyRotationMatrix = quaternionToMatrix(norm4(monkeyRotationQuaternion))
 		
 		for i=1,#M[1] do
 			crPoint=M[1][i]
+			crPoint[2] = multVectorByMatrix(crPoint[1],monkeyRotationMatrix)
 			for j = 1,3 do
-				crPoint[2][j]=crPoint[1][j]-camPos[j]
+				crPoint[2][j]=crPoint[2][j]-camPos[j]
 			end
 			distances=crPoint[2]
 			crPoint[5]=sqrt(distances[1]^2 + distances[2]^2 + distances[3]^2)
 			
-			
-			for curMat = 1,1 do
-			
-				newPoint={}
-				for j = 1,3 do
-					cr=0
-					for k = 1,3 do
-						cr=cr + crPoint[2][k]*cameraRotationMatrix[j][k]
-					end
-					newPoint[j]=cr
-				end
-				crPoint[3]=newPoint
-			end
+			crPoint[3]=multVectorByMatrix(crPoint[2],cameraRotationMatrix)
 			
 			crPoint[4]={crPoint[3][1]*screenScale/crPoint[3][3],
 			-crPoint[3][2]*screenScale/crPoint[3][3]}
@@ -178,15 +217,15 @@ function onTick()
 			
 		end
 		
-		if init then
+		if true then
 			for i=1,#M[2] do
 				curTri = M[2][i]
 				p1 = M[1][curTri[1]]
 				p2 = M[1][curTri[2]]
 				p3 = M[1][curTri[3]]
-				p1p = p1[1]
-				p2p = p2[1]
-				p3p = p3[1]
+				p1p = p1[2]
+				p2p = p2[2]
+				p3p = p3[2]
 				d1,d2={},{}
 				for j=1,3 do
 					d1[j]=p2p[j]-p1p[j]
