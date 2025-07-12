@@ -1,162 +1,162 @@
 
-J=180
+G=180
 p=math
-ap=p.max
-aI=p.min
+ao=p.max
+aO=p.min
 sqrt=math.sqrt
-aV=p.floor
+aM=p.floor
 pi=p.pi
-al=input.getNumber
-ao=input.getBool
+aq=input.getNumber
+ak=input.getBool
 bi=output.setBool
-aL=true
-ax=false
-aX=ipairs
+aU=true
+ar=false
+aW=ipairs
 abs=p.abs
-bk=table.remove
-aq=string
+bb=table.remove
+ap=string
 sin=p.sin
 cos=p.cos
 tan=p.tan
 unpack=table.unpack
-function S(_,c)return{(_[1]+c[1]),(_[2]+c[2])}end
-function bg(_,c)return _[1]*c[2]-_[2]*c[1]end
+function ab(_,c)return{(_[1]+c[1]),(_[2]+c[2])}end
+function b_(_,c)return _[1]*c[2]-_[2]*c[1]end
 function sub(_,c)return{(_[1]-c[1]),(_[2]-c[2])}end
-function X(_,c)return{_[1]*c,_[2]*c}end
-function bd(_)return((_+J)%360)-J end
-function bb(_)return p.atan(_)*J/pi end
-function aY(_)return p.atan(_[2],_[1])*J/pi end
-function bh(_,c,K)return aI(ap(c,_),K)end
-function b_(_)return aV(_+.5)end
-function aW(_,c)return sqrt(((_[1]-c[1])^2)+((_[2]-c[2])^2)+((_[3]-c[3])^2))end
-d={}ag=1
-ba=3
-v=1
-U=ax
-aC=aL
-Q=0
-ac=0
-aO={0,0,-3}x={0,0,0}aE=62.5
-at=pi/J
-bc=3/aE
-aw=90*at/aE
-aJ=90*at
-af=1
-ac=0
-function aP(q)if q[1]==0 and q[2]==0 and q[3]==0 then
+function W(_,c)return{_[1]*c,_[2]*c}end
+function ba(_)return((_+G)%360)-G end
+function bd(_)return p.atan(_)*G/pi end
+function bc(_)return p.atan(_[2],_[1])*G/pi end
+function bg(_,c,K)return aO(ao(c,_),K)end
+function bk(_)return aM(_+.5)end
+function aX(_,c)return sqrt(((_[1]-c[1])^2)+((_[2]-c[2])^2)+((_[3]-c[3])^2))end
+d={}af=1
+be=3
+u=1
+aa=ar
+aE=aU
+Z=0
+aj=0
+aG={0,0,-3}z={0,0,0}aD=62.5
+ax=pi/G
+bf=3/aD
+av=90*ax/aD
+aS=90*ax
+ac=1
+aj=0
+function aF(q)if q[1]==0 and q[2]==0 and q[3]==0 then
 return{1,0,0,0}else
 return{0,q[1],q[2],q[3]}end
 end
-function aG(Z,q)local A=aS(Z,aP(q))for b=1,4 do
-A[b]=Z[b]+A[b]*.5
+function aR(P,q)local D=aQ(P,aF(q))for b=1,4 do
+D[b]=P[b]+D[b]*.5
 end
-return A
+return D
 end
-function aS(an,ad)local T,R,V,N=unpack(an)local r,aa,P,ab=unpack(ad)return{T*r-R*aa-V*P-N*ab,T*aa+R*r-V*ab-N*P,T*P-R*ab+V*r-N*aa,T*ab+R*P-V*aa+N*r}end
-function bf(an,ad)local A={}for b=1,4 do A[b]=an+ad end
-return A
+function aQ(al,am)local N,T,X,Q=unpack(al)local r,R,S,U=unpack(am)return{N*r-T*R-X*S-Q*U,N*R+T*r+X*U-Q*S,N*S-T*U+X*r+Q*R,N*U+T*S-X*R+Q*r}end
+function aZ(al,am)local D={}for b=1,4 do D[b]=al+am end
+return D
 end
-function au(q,aK)local ar={}for f=1,3 do
+function aC(q,aK)local ay={}for f=1,3 do
 h=0
-for aD=1,3 do
-h=h+q[aD]*aK[f][aD]end
-ar[f]=h
+for az=1,3 do
+h=h+q[az]*aK[f][az]end
+ay[f]=h
 end
-return ar
+return ay
 end
-function aB(_,G)G=1/sqrt(_[1]^2+_[2]^2+_[3]^2+_[4]^2)return{_[1]*G,_[2]*G,_[3]*G,_[4]*G}end
-function aF(Z,s,l,m,j)s,l,m,j=unpack(Z)return{{1-(2*m*m+2*j*j),2*l*m+2*j*s,2*l*j-2*m*s},{2*l*m-2*j*s,1-(2*l*l+2*j*j),2*m*j+2*l*s},{2*l*j+2*m*s,2*m*j-2*l*s,1-(2*l*l+2*m*m)}}end
-function httpReply(_,c,K)be=Q//2
-Q=0
+function au(_,M)M=1/sqrt(_[1]^2+_[2]^2+_[3]^2+_[4]^2)return{_[1]*M,_[2]*M,_[3]*M,_[4]*M}end
+function aJ(P,s,o,l,n)s,o,l,n=unpack(P)return{{1-(2*l*l+2*n*n),2*o*l+2*n*s,2*o*n-2*l*s},{2*o*l-2*n*s,1-(2*o*o+2*n*n),2*l*n+2*o*s},{2*o*n+2*l*s,2*l*n-2*o*s,1-(2*o*o+2*l*l)}}end
+function httpReply(_,c,K)aY=Z//2
+Z=0
 end
 function onTick()for f=1,1 do
-if ao(32)and not U then
-ai=property.getText(ag)b=1
+if ak(32)and not aa then
+ad=property.getText(af)b=1
 k=""
-h=aq.sub(ai,b,b)while h~=""do
-az=aq.byte(h)if az>64 then
-k=(k..az-65)+0
-if v==1 then
+h=ap.sub(ad,b,b)while h~=""do
+aw=ap.byte(h)if aw>64 then
+k=(k..aw-65)+0
+if u==1 then
 aA=k
-d[k]=d[k]or{}elseif v==2 then
-aU=k
-I=0
-elseif v==3 then
-aj=k
+d[k]=d[k]or{}elseif u==2 then
+aH=k
+L=0
+elseif u==3 then
+ae=k
 else
-if I==0 then
-I=aU
-aj=aj-1
-ae={}d[aA][#d[aA]+1]=ae
+if L==0 then
+L=aH
+ae=ae-1
+an={}d[aA][#d[aA]+1]=an
 end
-ae[#ae+1]=k
-I=I-1
-v=ap(I,aj)>0 and v-1 or 0
+an[#an+1]=k
+L=L-1
+u=ao(L,ae)>0 and u-1 or 0
 end
-v=v+1
+u=u+1
 k=""
 else
 k=k..h
 end
 b=b+1
-h=aq.sub(ai,b,b)end
-ag=ag+1
-U=ai==""
+h=ap.sub(ad,b,b)end
+af=af+1
+aa=ad==""
 end
 end
-if U then
-ac=ac+1
-if aC then
-Y={1,0,0,0}for b=1,#d[1]do
+if aa then
+aj=aj+1
+if aE then
+V={1,0,0,0}for b=1,#d[1]do
 d[1][b]={d[1][b],{},0}end
 end
-if ao(1)then
-x[3]=x[3]-aw
+if ak(1)then
+z[3]=z[3]-av
 end
-if ao(3)then
-x[3]=x[3]+aw
+if ak(3)then
+z[3]=z[3]+av
 end
-_=x[1]c=x[2]K=x[3]F=cos(_)C=sin(_)D=cos(c)E=sin(c)H=cos(K)M=sin(K)aQ={{F*H-C*E*M,-D*M,F*E*M+H*C},{F*M+H*C*E,D*H,C*M-F*H*E},{-D*C,E,F*D}}aZ={-C*D,E,F*D}as={-.01*al(2),.01*al(1),.01*al(3)}Y=aB(aG(Y,as))aN=aF(aB(Y))for b=1,#d[1]do
-e=d[1][b]e[2]=au(e[1],aN)for f=1,3 do
-e[2][f]=e[2][f]-aO[f]end
-ak=e[2]e[5]=sqrt(ak[1]^2+ak[2]^2+ak[3]^2)e[3]=au(e[2],aQ)e[4]={e[3][1]*af/e[3][3],-e[3][2]*af/e[3][3]}e[6]=e[3][3]>0 and 1 or-1
+_=z[1]c=z[2]K=z[3]B=cos(_)F=sin(_)E=cos(c)A=sin(c)I=cos(K)H=sin(K)aP={{B*I-F*A*H,-E*H,B*A*H+I*F},{B*H+I*F*A,E*I,F*H-B*I*A},{-E*F,A,B*E}}bh={-F*E,A,B*E}as={-.01*aq(2),.01*aq(1),.01*aq(3)}V=au(aR(V,as))aT=aJ(au(V))for b=1,#d[1]do
+e=d[1][b]e[2]=aC(e[1],aT)for f=1,3 do
+e[2][f]=e[2][f]-aG[f]end
+ah=e[2]e[5]=sqrt(ah[1]^2+ah[2]^2+ah[3]^2)e[3]=aC(e[2],aP)e[4]={e[3][1]*ac/e[3][3],-e[3][2]*ac/e[3][3]}e[6]=e[3][3]>0 and 1 or-1
 end
 if true then
 for b=1,#d[2]do
-a=d[2][b]g=d[1][a[1]]i=d[1][a[2]]o=d[1][a[3]]ay=g[2]aR=i[2]aT=o[2]u,y={},{}for f=1,3 do
-u[f]=aR[f]-ay[f]y[f]=aT[f]-ay[f]end
+a=d[2][b]g=d[1][a[1]]i=d[1][a[2]]m=d[1][a[3]]at=g[2]aN=i[2]aV=m[2]v,w={},{}for f=1,3 do
+v[f]=aN[f]-at[f]w[f]=aV[f]-at[f]end
 h={}a[8]=h
-h[1]=u[2]*y[3]-u[3]*y[2]h[2]=u[3]*y[1]-u[1]*y[3]h[3]=u[1]*y[2]-u[2]*y[1]end
+h[1]=v[2]*w[3]-v[3]*w[2]h[2]=v[3]*w[1]-v[1]*w[3]h[3]=v[1]*w[2]-v[2]*w[1]end
 end
-n={}for b=1,#d[2]do
-a=d[2][b]g=d[1][a[1]]i=d[1][a[2]]o=d[1][a[3]]a[7]=ap(g[5],i[5],o[5])_=a[8]c=g[2]if _[1]*c[1]+_[2]*c[2]+_[3]*c[3]>0 then
-L=g[6]+i[6]+o[6]if L==3 then
-n[#n+1]={g[4],i[4],o[4],a[4],a[5],a[6],a[7]}elseif L>=-1 then
-if g[6]==-L then
-z=g[4]w=i[4]t=o[4]elseif i[6]==-L then
-z=i[4]w=g[4]t=o[4]else
-z=o[4]w=i[4]t=g[4]end
-if L==1 then
-W=S(X(sub(w,z),1000),w)am=S(X(sub(t,z),1000),t)n[#n+1]={w,W,t,a[4],a[5],a[6],a[7]}n[#n+1]={t,W,am,a[4],a[5],a[6],a[7]}else
-W=S(X(sub(z,w),1000),w)am=S(X(sub(z,t),1000),t)n[#n+1]={z,W,am,a[4],a[5],a[6],a[7]}end
+j={}for b=1,#d[2]do
+a=d[2][b]g=d[1][a[1]]i=d[1][a[2]]m=d[1][a[3]]a[7]=ao(g[5],i[5],m[5])_=a[8]c=g[2]if _[1]*c[1]+_[2]*c[2]+_[3]*c[3]>0 then
+J=g[6]+i[6]+m[6]if J==3 then
+j[#j+1]={g[4],i[4],m[4],a[4],a[5],a[6],a[7]}elseif J>=-1 then
+if g[6]==-J then
+y=g[4]x=i[4]t=m[4]elseif i[6]==-J then
+y=i[4]x=g[4]t=m[4]else
+y=m[4]x=i[4]t=g[4]end
+if J==1 then
+O=ab(W(sub(x,y),1000),x)ai=ab(W(sub(t,y),1000),t)j[#j+1]={x,O,t,a[4],a[5],a[6],a[7]}j[#j+1]={t,O,ai,a[4],a[5],a[6],a[7]}else
+O=ab(W(sub(y,x),1000),x)ai=ab(W(sub(y,t),1000),t)j[#j+1]={y,O,ai,a[4],a[5],a[6],a[7]}end
 end
 end
 end
-table.sort(n,function(_,c)return _[7]>c[7]end)aC=ax
+table.sort(j,function(_,c)return _[7]>c[7]end)aE=ar
 end
-Q=Q+1
+Z=Z+1
 end
-function onDraw()B=screen
-local aH,bj,av,O=B.drawTriangleF,B.drawRectF,B.setColor,B.drawText
-s=B.getWidth()aM=B.getHeight()r=s/2
-ah=aM/2
-af=tan(aJ/2)*r
-av(255,255,255)if U then
-O(1,1,"Quaternion:")for b=1,4 do
-O(1,b*6+1,Y[b])end
-O(1,37,"Keyboard input:")for b=1,3 do
-O(1,b*6+37,as[b])end
-for b=1,#n do
-a=n[b]g=a[1]i=a[2]o=a[3]av(a[4],a[5],a[6])aH(g[1]+r,g[2]+ah,i[1]+r,i[2]+ah,o[1]+r,o[2]+ah)end
+function onDraw()C=screen
+local aI,bj,aB,Y=C.drawTriangleF,C.drawRectF,C.setColor,C.drawText
+s=C.getWidth()aL=C.getHeight()r=s/2
+ag=aL/2
+ac=tan(aS/2)*r
+aB(255,255,255)if aa then
+Y(1,1,"Quaternion:")for b=1,4 do
+Y(1,b*6+1,V[b])end
+Y(1,37,"Keyboard input:")for b=1,3 do
+Y(1,b*6+37,as[b])end
+for b=1,#j do
+a=j[b]g=a[1]i=a[2]m=a[3]aB(a[4],a[5],a[6])aI(g[1]+r,g[2]+ag,i[1]+r,i[2]+ag,m[1]+r,m[2]+ag)end
 end
 end
