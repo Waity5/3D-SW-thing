@@ -28,6 +28,9 @@ function at2(a)return m.atan(a[2],a[1])*180/pi end
 function clmp(a,b,c)return mn(mx(b,a),c)end
 function rnd(a)return flr(a+0.5)end
 function dist(a,b)return sqrt(((a[1]-b[1])^2)+((a[2]-b[2])^2)+((a[3]-b[3])^2))end
+function add3(a,b)return{a[1]+b[1],a[2]+b[2],a[3]+b[3]}end
+function sub3(a,b)return{a[1]-b[1],a[2]-b[2],a[3]-b[3]}end
+function mul3(a,b)return{a[1]*b,a[2]*b,a[3]*b}end
 
 M={}
 romCr=1
@@ -46,6 +49,28 @@ rotateSpeed=90*angleConvert/tickRate
 fov=90*angleConvert
 screenScale=1
 tick=0
+
+function intersectTriangle(rayPos,rayDir,a,b,c) -- https://stackoverflow.com/questions/42740765/intersection-between-line-and-triangle-in-3d
+	E1 = sub3(b, a)
+	E2 = sub3(c, a)
+	N = cross(E1,E2)
+	det = -dot(rayDir, N)
+	invdet = 1.0/det
+	AO  = sub3(rayPos, a)
+	DAO = cross(AO, rayDir)
+	u =  dot(E2,DAO) * invdet
+	v = -dot(E1,DAO) * invdet
+	t =  dot(AO,N)  * invdet
+	return (det >= 1e-6 and t >= 0.0 and u >= 0.0 and v >= 0.0 and (u+v) <= 1.0)
+end
+
+function cross(a,b)
+	return {a[2]*b[3] - a[3]*b[2], a[3]*b[1] - a[1]*b[3], a[1]*b[2] - a[2]*b[1]}
+end
+
+function dot(a,b)
+	return a[1]*b[1]+a[2]*b[2]+a[3]*b[3]
+end
 
 function vectorToQuaternion(vec)
 	if vec[1]==0 and vec[2]==0 and vec[3]==0 then
@@ -92,13 +117,25 @@ function multVectorByMatrix(vec,matrix)
 	return newVec
 end
 
+function divVectorByRotationMatrix(vec,matrix)
+	local newVec={}
+	for j = 1,3 do
+		cr=0
+		for k = 1,3 do
+			cr=cr + vec[k]*matrix[k][j]
+		end
+		newVec[j]=cr
+	end
+	return newVec
+end
+
 function norm4(a,correction)
 	correction=1/sqrt(a[1]^2 + a[2]^2 + a[3]^2 + a[4]^2)
 	return {a[1]*correction, a[2]*correction, a[3]*correction, a[4]*correction}
 end
 
-function quaternionToMatrix(quat,w,x,y,z)
-	w,x,y,z=unpack(quat)
+function quaternionToMatrix(quat)
+	local w,x,y,z=unpack(quat)
 	return {
 		{1-(2*y*y + 2*z*z), 2*x*y + 2*z*w,     2*x*z - 2*y*w},
 		{2*x*y - 2*z*w,     1-(2*x*x + 2*z*z), 2*y*z + 2*x*w},
@@ -162,17 +199,17 @@ function onTick()
 				M[1][i]={M[1][i],{},0}
 			end
 		end
-		--camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
-		--camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
+		camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
+		camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
 		--camRot[3]=camRot[3]+gN(1)*rotateSpeed
-		--camRot[1]=camRot[1]-gN(3)*rotateSpeed
-		--camRot[2]=camRot[2]+gN(4)*rotateSpeed
-		if gB(1) then
-			camRot[3]=camRot[3]-rotateSpeed
-		end
-		if gB(3) then
-			camRot[3]=camRot[3]+rotateSpeed
-		end
+		camRot[1]=camRot[1]-gN(3)*rotateSpeed
+		camRot[2]=camRot[2]+gN(4)*rotateSpeed
+		--if gB(1) then
+		--	camRot[3]=camRot[3]-rotateSpeed
+		--end
+		--if gB(3) then
+		--	camRot[3]=camRot[3]+rotateSpeed
+		--end
 		
 		a=camRot[1]
 		b=camRot[2]
@@ -210,10 +247,12 @@ function onTick()
 		
 		cameraRotationVector = {-s_a*c_b,s_b,c_a*c_b}
 		
-		keyboardRotationInput = {-0.01*gN(2),0.01*gN(1),0.01*gN(3)}
-		monkeyRotationQuaternion = norm4(updateQuaternionByVector(monkeyRotationQuaternion,keyboardRotationInput))
+		--keyboardRotationInput = {-0.01*gN(2),0.01*gN(1),0.01*gN(3)}
+		monkeyRotationInput = {0,0,0}
+		monkeyRotationQuaternion = norm4(updateQuaternionByVector(monkeyRotationQuaternion,monkeyRotationInput))
 		
 		monkeyRotationMatrix = quaternionToMatrix(norm4(monkeyRotationQuaternion))
+		
 		
 		for i=1,#M[1] do
 			crPoint=M[1][i]
@@ -232,6 +271,23 @@ function onTick()
 			
 		end
 		
+		monkeyRayHit = falseVar
+		bestT=2^16
+		for i=1,#M[2] do
+			curTri = M[2][i]
+			curHit = intersectTriangle({0,0,0},cameraRotationVector,M[1][curTri[1]][2],M[1][curTri[2]][2],M[1][curTri[3]][2])
+			if curHit and t<bestT then
+				monkeyRayHit = trueVar
+				bestT=t
+			end
+		end
+		if monkeyRayHit then
+			collPoint=add3(mul3(cameraRotationVector,bestT),camPos)
+			collPointCamRelative=multVectorByMatrix(sub3(collPoint,camPos),cameraRotationMatrix)
+			collPointScreenPos={collPointCamRelative[1]*screenScale/collPointCamRelative[3],
+			collPointCamRelative[2]*screenScale/collPointCamRelative[3]}
+		end
+		
 		if true then
 			for i=1,#M[2] do
 				curTri = M[2][i]
@@ -246,12 +302,7 @@ function onTick()
 					d1[j]=p2p[j]-p1p[j]
 					d2[j]=p3p[j]-p1p[j]
 				end
-				cr={}
-				curTri[8]=cr
-				
-				cr[1]=d1[2]*d2[3] - d1[3]*d2[2]
-				cr[2]=d1[3]*d2[1] - d1[1]*d2[3]
-				cr[3]=d1[1]*d2[2] - d1[2]*d2[1]
+				curTri[8]=cross(d1,d2)
 			end
 		end
 		
@@ -264,7 +315,7 @@ function onTick()
 			curTri[7]=mx(p1[5],p2[5],p3[5])
 			a=curTri[8]
 			b=p1[2]
-			if a[1]*b[1]+a[2]*b[2]+a[3]*b[3]>0 then
+			if dot(a,b)>0 then
 				sideVal=p1[6]+p2[6]+p3[6]
 				if sideVal == 3 then
 					renderTris[#renderTris+1] = {p1[4],p2[4],p3[4],curTri[4],curTri[5],curTri[6],curTri[7]}
@@ -334,10 +385,12 @@ function onDraw()
 		for i=1,4 do
 			text(1,i*6+1,monkeyRotationQuaternion[i])
 		end
-		text(1,37,"Keyboard input:")
+		text(1,37,"Monkey input:")
 		for i=1,3 do
-			text(1,i*6+37,keyboardRotationInput[i])
+			text(1,i*6+37,monkeyRotationInput[i])
 		end
+		
+		text(100,1,monkeyRayHit and "YES" or "NO")
 		
 		
 		for i=1,#renderTris do
@@ -347,6 +400,13 @@ function onDraw()
 			p3 = curTri[3]
 			stCl(curTri[4],curTri[5],curTri[6])
 			tri(p1[1]+w2,p1[2]+h2,p2[1]+w2,p2[2]+h2,p3[1]+w2,p3[2]+h2)
+		end
+		
+		stCl(255,255,255)
+		
+		if monkeyRayHit then
+			recSize=10/collPointCamRelative[3]
+			rec(collPointScreenPos[1]+w2-(recSize//2),collPointScreenPos[2]+h2-(recSize//2),recSize,recSize)
 		end
 	end
 end
