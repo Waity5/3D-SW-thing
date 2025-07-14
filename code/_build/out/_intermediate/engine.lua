@@ -32,6 +32,7 @@ function dist(a,b)return sqrt(((a[1]-b[1])^2)+((a[2]-b[2])^2)+((a[3]-b[3])^2))en
 function add3(a,b)return{a[1]+b[1],a[2]+b[2],a[3]+b[3]}end
 function sub3(a,b)return{a[1]-b[1],a[2]-b[2],a[3]-b[3]}end
 function mul3(a,b)return{a[1]*b,a[2]*b,a[3]*b}end
+function stringRound3(a)return string.format("%.3f", a or 0)end
 
 M={}
 romCr=1
@@ -62,7 +63,7 @@ function intersectTriangle(rayPos,rayDir,a,b,c) -- https://stackoverflow.com/que
 	u =  dot(E2,DAO) * invdet
 	v = -dot(E1,DAO) * invdet
 	t =  dot(AO,N)  * invdet
-	return (det >= 1e-6 and t >= 0.0 and u >= 0.0 and v >= 0.0 and (u+v) <= 1.0)
+	return (-det >= 1e-6 and t >= 0.0 and u >= 0.0 and v >= 0.0 and (u+v) <= 1.0)
 end
 
 function cross(a,b)
@@ -196,6 +197,7 @@ function onTick()
 		tick = tick+1
 		if init then
 			monkeyRotationQuaternion={1,0,0,0}
+			monkeyRotationVelocity = {0,0,0}
 			for i=1,#M[1] do
 				M[1][i]={M[1][i],{},0}
 			end
@@ -211,6 +213,16 @@ function onTick()
 		--if gB(3) then
 		--	camRot[3]=camRot[3]+rotateSpeed
 		--end
+		pushForce=0
+		pushColour={255,255,255}
+		if gB(1) then
+			pushForce=0.001
+			pushColour={0,0,255}
+		end
+		if gB(3) then
+			pushForce=-0.001
+			pushColour={255,0,0}
+		end
 		
 		a=camRot[1]
 		b=camRot[2]
@@ -249,8 +261,9 @@ function onTick()
 		cameraRotationVector = {-s_a*c_b,s_b,c_a*c_b}
 		
 		--keyboardRotationInput = {-0.01*gN(2),0.01*gN(1),0.01*gN(3)}
-		monkeyRotationInput = {0,0,0}
-		monkeyRotationQuaternion = norm4(updateQuaternionByVector(monkeyRotationQuaternion,monkeyRotationInput))
+		
+		monkeyRotationQuaternion = norm4(updateQuaternionByVector(monkeyRotationQuaternion,monkeyRotationVelocity))
+		mul3(monkeyRotationVelocity,0.80)
 		
 		monkeyRotationMatrix = quaternionToMatrix(norm4(monkeyRotationQuaternion))
 		
@@ -284,6 +297,11 @@ function onTick()
 		end
 		if monkeyRayHit then
 			collPoint=add3(mul3(cameraRotationVector,bestT),camPos)
+			
+			collPointMonkeyRelative=divVectorByRotationMatrix(collPoint,monkeyRotationMatrix)
+			collDirMonkeyRelative=divVectorByRotationMatrix(cameraRotationVector,monkeyRotationMatrix)
+			monkeyRotationVelocity=add3(monkeyRotationVelocity,mul3(cross(collPoint,cameraRotationVector),pushForce))
+			
 			collPointCamRelative=multVectorByMatrix(sub3(collPoint,camPos),cameraRotationMatrix)
 			collPointScreenPos={collPointCamRelative[1]*screenScale/collPointCamRelative[3],
 			collPointCamRelative[2]*screenScale/collPointCamRelative[3]}
@@ -382,16 +400,24 @@ function onDraw()
 	--end
 	
 	if loaded then
-		text(1,1,"Quaternion:")
+		text(1,1,"Orientation Quaternion:")
 		for i=1,4 do
-			text(1,i*6+1,monkeyRotationQuaternion[i])
+			text(1,i*6+1,stringRound3(monkeyRotationQuaternion[i]))
 		end
-		text(1,37,"Monkey input:")
+		text(1,37,"Rotational Velocity:")
 		for i=1,3 do
-			text(1,i*6+37,monkeyRotationInput[i])
+			text(1,i*6+37,stringRound3(monkeyRotationVelocity[i]))
+		end
+		text(1,73,"Ray col pos:")
+		for i=1,3 do
+			text(1,i*6+73,stringRound3(collPointMonkeyRelative[i]))
+		end
+		text(1,109,"Ray dir:")
+		for i=1,3 do
+			text(1,i*6+109,stringRound3(collDirMonkeyRelative[i]))
 		end
 		
-		text(100,1,monkeyRayHit and "YES" or "NO")
+		--text(100,1,monkeyRayHit and "YES" or "NO")
 		
 		
 		for i=1,#renderTris do
@@ -403,7 +429,7 @@ function onDraw()
 			tri(p1[1]+w2,p1[2]+h2,p2[1]+w2,p2[2]+h2,p3[1]+w2,p3[2]+h2)
 		end
 		
-		stCl(255,255,255)
+		stCl(unpack(pushColour))
 		
 		if monkeyRayHit then
 			recSize=10/collPointCamRelative[3]
