@@ -10,6 +10,10 @@ if __name__ == '__main__':
     packets = []
     curmax = 8192
 
+    total_render_points = 0
+    total_render_tris = 0
+    
+
     # Using an existing stl file:
     path = ".\\stl\\"
     your_mesh = mesh.Mesh.from_file(path+'monkey.stl')
@@ -60,8 +64,11 @@ if __name__ == '__main__':
 
     pnt = ""
 
+    points_start = total_render_points+1
     for i in points:
-        packets.append((1,(i[0],i[2],i[1])))
+        packets.append((2,(i[0],i[2],i[1])))
+        total_render_points += 1
+    points_end = total_render_points
 
     #pnt = ""
     #for i in vectors_indexed:
@@ -94,17 +101,20 @@ if __name__ == '__main__':
         
         colours.append(cur_colour)
 
+    tris_start = total_render_tris+1
     for i in range(len(your_mesh.v0)):
         cur_colour = colours[i]
-        packets.append((2,(points.index(tuple(your_mesh.v0[i]))+1,
+        packets.append((3,(points.index(tuple(your_mesh.v0[i]))+1,
                         points.index(tuple(your_mesh.v1[i]))+1,
                         points.index(tuple(your_mesh.v2[i]))+1,
                         cur_colour[0],
                         cur_colour[1],
                         cur_colour[2],
                         )))
+        total_render_tris += 1
+    tris_end = total_render_tris
 
-
+    packets.append((1,(points_start,points_end,tris_start,tris_end)))
 
     
 
@@ -155,7 +165,7 @@ if __name__ == '__main__':
         end = text.find(find_end,start)
         if i==1:
             None
-            print(code.split("\n")[183-1])
+            print(code.split("\n")[59-1])
             
 
         assert start>0 and end>0, "Code insertion search terms not in base vehicle file"

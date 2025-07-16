@@ -51,6 +51,36 @@ fov=90*angleConvert
 screenScale=1
 tick=0
 
+function summonObject(index,conditions)
+	newPoints={}
+	conditions=conditions or{}
+	j=1
+	for i=M[1][index][1],M[1][index][2] do
+		cr=M[2][i]
+		newPoints[j]={{cr[1],cr[2],cr[3]},{}}
+		j=j+1
+	end
+	newTris={}
+	j=1
+	for i=M[1][1][3],M[1][1][4] do
+		cr=M[3][i]
+		newTris[j]=cr
+		j=j+1
+	end
+	
+	newObject={-- position, velocity, acceleration, orientation, rotation velocity, rotation acceleration, points, tris
+		conditions[1]or{0,0,0},
+		conditions[2]or{0,0,0},
+		conditions[3]or{0,0,0},
+		conditions[4]or{1,0,0,0},
+		conditions[5]or{0,0,0},
+		conditions[6]or{0,0,0},
+		newPoints,
+		newTris,
+	}
+	objects[#objects+1]=newObject
+end
+
 function intersectTriangle(rayPos,rayDir,a,b,c) -- https://stackoverflow.com/questions/42740765/intersection-between-line-and-triangle-in-3d
 	E1 = sub3(b, a)
 	E2 = sub3(c, a)
@@ -195,11 +225,9 @@ function onTick()
 	if loaded then
 		tick = tick+1
 		if init then
-			monkeyRotationQuaternion={1,0,0,0}
-			monkeyRotationVelocity = {0,0,0}
-			for i=1,#M[1] do
-				M[1][i]={M[1][i],{},0}
-			end
+			objects={}
+			summonObject(1)
+			summonObject(1,{[1]={3,0,0}})
 		end
 		camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
 		camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
@@ -260,113 +288,117 @@ function onTick()
 		cameraRotationVector = {-s_a*c_b,s_b,c_a*c_b}
 		
 		--keyboardRotationInput = {-0.01*gN(2),0.01*gN(1),0.01*gN(3)}
-		
-		monkeyRotationQuaternion = norm4(updateQuaternionByVector(monkeyRotationQuaternion,monkeyRotationVelocity))
-		mul3(monkeyRotationVelocity,0.80)
-		
-		monkeyRotationMatrix = quaternionToMatrix(norm4(monkeyRotationQuaternion))
-		
-		
-		for i=1,#M[1] do
-			crPoint=M[1][i]
-			crPoint[2] = multVectorByMatrix(crPoint[1],monkeyRotationMatrix)
-			for j = 1,3 do
-				crPoint[2][j]=crPoint[2][j]-camPos[j]
-			end
-			distances=crPoint[2]
-			crPoint[5]=sqrt(distances[1]^2 + distances[2]^2 + distances[3]^2)
-			
-			crPoint[3]=multVectorByMatrix(crPoint[2],cameraRotationMatrix)
-			
-			crPoint[4]={crPoint[3][1]*screenScale/crPoint[3][3],
-			-crPoint[3][2]*screenScale/crPoint[3][3]}
-			crPoint[6]=crPoint[3][3]>0 and 1 or -1
-			
-		end
-		
-		monkeyRayHit = falseVar
-		bestT=2^16
-		for i=1,#M[2] do
-			curTri = M[2][i]
-			curHit = intersectTriangle({0,0,0},cameraRotationVector,M[1][curTri[1]][2],M[1][curTri[2]][2],M[1][curTri[3]][2])
-			if curHit and t<bestT then
-				monkeyRayHit = trueVar
-				bestT=t
-			end
-		end
-		if monkeyRayHit then
-			collPoint=add3(mul3(cameraRotationVector,bestT),camPos)
-			
-			collPointMonkeyRelative=divVectorByRotationMatrix(collPoint,monkeyRotationMatrix)
-			collDirMonkeyRelative=divVectorByRotationMatrix(cameraRotationVector,monkeyRotationMatrix)
-			monkeyRotationVelocity=add3(monkeyRotationVelocity,mul3(cross(collPoint,cameraRotationVector),pushForce))
-			
-			collPointCamRelative=multVectorByMatrix(sub3(collPoint,camPos),cameraRotationMatrix)
-			collPointScreenPos={collPointCamRelative[1]*screenScale/collPointCamRelative[3],
-			collPointCamRelative[2]*screenScale/collPointCamRelative[3]}
-		end
-		
-		if true then
-			for i=1,#M[2] do
-				curTri = M[2][i]
-				p1 = M[1][curTri[1]]
-				p2 = M[1][curTri[2]]
-				p3 = M[1][curTri[3]]
-				p1p = p1[2]
-				p2p = p2[2]
-				p3p = p3[2]
-				d1,d2={},{}
-				for j=1,3 do
-					d1[j]=p2p[j]-p1p[j]
-					d2[j]=p3p[j]-p1p[j]
-				end
-				curTri[8]=cross(d1,d2)
-			end
-		end
-		
+		overalRayHit = falseVar
 		renderTris = {}
-		for i=1,#M[2] do
-			curTri = M[2][i]
-			p1 = M[1][curTri[1]]
-			p2 = M[1][curTri[2]]
-			p3 = M[1][curTri[3]]
-			curTri[7]=mx(p1[5],p2[5],p3[5])
-			a=curTri[8]
-			b=p1[2]
-			if dot(a,b)>0 then
-				sideVal=p1[6]+p2[6]+p3[6]
-				if sideVal == 3 then
-					renderTris[#renderTris+1] = {p1[4],p2[4],p3[4],curTri[4],curTri[5],curTri[6],curTri[7]}
-				elseif sideVal >= -1 then
-					if p1[6]==-sideVal then
-						screenPoint1=p1[4]
-						screenPoint2=p2[4]
-						screenPoint3=p3[4]
-					elseif p2[6]==-sideVal then
-						screenPoint1=p2[4]
-						screenPoint2=p1[4]
-						screenPoint3=p3[4]
-					else
-						screenPoint1=p3[4]
-						screenPoint2=p2[4]
-						screenPoint3=p1[4]
+		for index = 1,#objects do
+			object = objects[index]
+			object[4] = norm4(updateQuaternionByVector(object[4],object[5]))
+			object[5]=mul3(object[5],0.995)
+		
+			curRotationMatrix = quaternionToMatrix(norm4(object[4]))
+		
+		
+			for i=1,#object[7] do
+				crPoint=object[7][i]
+				crPoint[2] = multVectorByMatrix(crPoint[1],curRotationMatrix)
+				for j = 1,3 do
+					crPoint[2][j]=crPoint[2][j]-camPos[j]+object[1][j]
+				end
+				distances=crPoint[2]
+				crPoint[5]=sqrt(distances[1]^2 + distances[2]^2 + distances[3]^2)
+				
+				crPoint[3]=multVectorByMatrix(crPoint[2],cameraRotationMatrix)
+				
+				crPoint[4]={crPoint[3][1]*screenScale/crPoint[3][3],
+				-crPoint[3][2]*screenScale/crPoint[3][3]}
+				crPoint[6]=crPoint[3][3]>0 and 1 or -1
+				
+			end
+			
+			monkeyRayHit = falseVar
+			bestT=2^16
+			for i=1,#object[8] do
+				curTri = object[8][i]
+				curHit = intersectTriangle({0,0,0},cameraRotationVector,object[7][curTri[1]][2],object[7][curTri[2]][2],object[7][curTri[3]][2])
+				if curHit and t<bestT then
+					monkeyRayHit = trueVar
+					bestT=t
+				end
+			end
+			if monkeyRayHit then
+				overalRayHit = trueVar
+				collPoint=add3(mul3(cameraRotationVector,bestT),camPos)
+				collPointObjectRelative=sub3(collPoint,object[1])
+				--collDirObjectRelative=divVectorByRotationMatrix(cameraRotationVector,curRotationMatrix)
+				object[5]=add3(object[5],mul3(cross(collPointObjectRelative,cameraRotationVector),pushForce))
+				
+				collPointCamRelative=multVectorByMatrix(sub3(collPoint,camPos),cameraRotationMatrix)
+				collPointScreenPos={collPointCamRelative[1]*screenScale/collPointCamRelative[3],
+				collPointCamRelative[2]*screenScale/collPointCamRelative[3]}
+			end
+			
+			if true then
+				for i=1,#object[8] do
+					curTri = object[8][i]
+					p1 = object[7][curTri[1]]
+					p2 = object[7][curTri[2]]
+					p3 = object[7][curTri[3]]
+					p1p = p1[2]
+					p2p = p2[2]
+					p3p = p3[2]
+					d1,d2={},{}
+					for j=1,3 do
+						d1[j]=p2p[j]-p1p[j]
+						d2[j]=p3p[j]-p1p[j]
 					end
-					if sideVal == 1 then
-						screenPoint4=add(mul(sub(screenPoint2,screenPoint1),1000),screenPoint2)
-						screenPoint5=add(mul(sub(screenPoint3,screenPoint1),1000),screenPoint3)
-						--renderTris[#renderTris+1] = {screenPoint2,screenPoint4,screenPoint3,255,0,0,curTri[7]}
-						--renderTris[#renderTris+1] = {screenPoint3,screenPoint4,screenPoint5,0,0,255,curTri[7]}
-						renderTris[#renderTris+1] = {screenPoint2,screenPoint4,screenPoint3,curTri[4],curTri[5],curTri[6],curTri[7]}
-						renderTris[#renderTris+1] = {screenPoint3,screenPoint4,screenPoint5,curTri[4],curTri[5],curTri[6],curTri[7]}
-					else
-						screenPoint4=add(mul(sub(screenPoint1,screenPoint2),1000),screenPoint2)
-						screenPoint5=add(mul(sub(screenPoint1,screenPoint3),1000),screenPoint3)
-						--renderTris[#renderTris+1] = {screenPoint1,screenPoint4,screenPoint5,255,0,255,curTri[7]}
-						renderTris[#renderTris+1] = {screenPoint1,screenPoint4,screenPoint5,curTri[4],curTri[5],curTri[6],curTri[7]}
-					end					
+					curTri[8]=cross(d1,d2)
+				end
+			end
+			
+			for i=1,#object[8] do
+				curTri = object[8][i]
+				p1 = object[7][curTri[1]]
+				p2 = object[7][curTri[2]]
+				p3 = object[7][curTri[3]]
+				curTri[7]=mx(p1[5],p2[5],p3[5])
+				a=curTri[8]
+				b=p1[2]
+				if dot(a,b)>0 then
+					sideVal=p1[6]+p2[6]+p3[6]
+					if sideVal == 3 then
+						renderTris[#renderTris+1] = {p1[4],p2[4],p3[4],curTri[4],curTri[5],curTri[6],curTri[7]}
+					elseif sideVal >= -1 then
+						if p1[6]==-sideVal then
+							screenPoint1=p1[4]
+							screenPoint2=p2[4]
+							screenPoint3=p3[4]
+						elseif p2[6]==-sideVal then
+							screenPoint1=p2[4]
+							screenPoint2=p1[4]
+							screenPoint3=p3[4]
+						else
+							screenPoint1=p3[4]
+							screenPoint2=p2[4]
+							screenPoint3=p1[4]
+						end
+						if sideVal == 1 then
+							screenPoint4=add(mul(sub(screenPoint2,screenPoint1),1000),screenPoint2)
+							screenPoint5=add(mul(sub(screenPoint3,screenPoint1),1000),screenPoint3)
+							--renderTris[#renderTris+1] = {screenPoint2,screenPoint4,screenPoint3,255,0,0,curTri[7]}
+							--renderTris[#renderTris+1] = {screenPoint3,screenPoint4,screenPoint5,0,0,255,curTri[7]}
+							renderTris[#renderTris+1] = {screenPoint2,screenPoint4,screenPoint3,curTri[4],curTri[5],curTri[6],curTri[7]}
+							renderTris[#renderTris+1] = {screenPoint3,screenPoint4,screenPoint5,curTri[4],curTri[5],curTri[6],curTri[7]}
+						else
+							screenPoint4=add(mul(sub(screenPoint1,screenPoint2),1000),screenPoint2)
+							screenPoint5=add(mul(sub(screenPoint1,screenPoint3),1000),screenPoint3)
+							--renderTris[#renderTris+1] = {screenPoint1,screenPoint4,screenPoint5,255,0,255,curTri[7]}
+							renderTris[#renderTris+1] = {screenPoint1,screenPoint4,screenPoint5,curTri[4],curTri[5],curTri[6],curTri[7]}
+						end
+					end
 				end
 			end
 		end
+		
 		
 		table.sort(renderTris,function(a,b)return a[7]>b[7]end)
 		
@@ -399,22 +431,22 @@ function onDraw()
 	--end
 	
 	if loaded then
-		text(1,1,"Orientation Quaternion:")
-		for i=1,4 do
-			text(1,i*6+1,stringRound3(monkeyRotationQuaternion[i]))
-		end
-		text(1,37,"Rotational Velocity:")
-		for i=1,3 do
-			text(1,i*6+37,stringRound3(monkeyRotationVelocity[i]))
-		end
-		text(1,73,"Ray col pos:")
-		for i=1,3 do
-			text(1,i*6+73,stringRound3(collPointMonkeyRelative[i]))
-		end
-		text(1,109,"Ray dir:")
-		for i=1,3 do
-			text(1,i*6+109,stringRound3(collDirMonkeyRelative[i]))
-		end
+		--text(1,1,"Orientation Quaternion:")
+		--for i=1,4 do
+		--	text(1,i*6+1,stringRound3(monkeyRotationQuaternion[i]))
+		--end
+		--text(1,37,"Rotational Velocity:")
+		--for i=1,3 do
+		--	text(1,i*6+37,stringRound3(monkeyRotationVelocity[i]))
+		--end
+		--text(1,73,"Ray col pos:")
+		--for i=1,3 do
+		--	text(1,i*6+73,stringRound3(collPointMonkeyRelative[i]))
+		--end
+		--text(1,109,"Ray dir:")
+		--for i=1,3 do
+		--	text(1,i*6+109,stringRound3(collDirMonkeyRelative[i]))
+		--end
 		
 		--text(100,1,monkeyRayHit and "YES" or "NO")
 		
@@ -430,7 +462,7 @@ function onDraw()
 		
 		stCl(unpack(pushColour))
 		
-		if monkeyRayHit then
+		if overalRayHit then
 			recSize=10/collPointCamRelative[3]
 			rec(collPointScreenPos[1]+w2-(recSize//2),collPointScreenPos[2]+h2-(recSize//2),recSize,recSize)
 		end
