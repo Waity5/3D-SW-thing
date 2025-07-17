@@ -52,6 +52,103 @@ fov=90*angleConvert
 screenScale=1
 tick=0
 
+function gjkCollisionDetection(points1,points2)
+	searchDirection={1,0,0}
+	collPoints={}
+	while trueVar do
+		searchDirectionInverse=mul3(searchDirection,-1)
+		dot1=-(2^32)
+		for i,v in ipairsVar(points1) do
+			crDot = dot(v[2],searchDirection)
+			if crDot>dot1 then
+				point1=v[2]
+				dot1=crDot
+			end
+		end
+		dot2=-(2^32)
+		for i,v in ipairsVar(points2) do
+			crDot = dot(v[2],searchDirectionInverse)
+			if crDot>dot2 then
+				point2=v[2]
+				dot2=crDot
+			end
+		end
+		
+		crPoint = sub3(point1,point2)
+		if dot(crPoint,searchDirection)<=0 then
+			return "NO"
+		end
+		
+		collPoints = {crPoint, collPoints[1], collPoints[2], collPoints[3]}
+		
+		local a,b,c,d=unpack(collPoints)
+		
+		if d then
+			local ab = sub3(b,a)
+			local ac = sub3(c,a)
+			local ad = sub3(d,a)
+			local ao = mul3(a,-1)
+			
+			local abc = cross(ab,ac)
+			local acd = cross(ac,ad)
+			local adb = cross(ad,ab)
+			
+			if dot(abc, ao)>0 then
+				gjkTri(a,b,c)
+			elseif dot(acd, ao)>0 then
+				gjkTri(a,c,d)
+			elseif dot(adb, ao)>0 then
+				gjkTri(a,d,b)
+			else
+				return "YES"
+			end
+		elseif c then
+			gjkTri(a,b,c)
+		elseif b then
+			gjkLine(a,b)
+		else
+			collPoints={a}
+			searchDirection=mul3(a,-1)
+		end
+	end
+end
+
+function gjkTri(a,b,c)
+	local ab = sub3(b,a)
+	local ac = sub3(c,a)
+	local ao = mul3(a,-1)
+	
+	local abc = cross(ab,ac)
+	
+	if dot(cross(abc, ac), ao)>0 then -- closest to edge AC
+		collPoints = {a,c}
+		searchDirection = cross(cross(ac, ao), ac)
+	elseif dot(cross(ab, abc), ao)>0 then --closest to edge AB
+		collPoints = {a,b}
+		searchDirection = cross(cross(ab, ao), ab)
+	else
+		if dot(abc, ao)>0 then
+			collPoints = {a,b,c} --above triangle
+			searchDirection = abc;
+		else
+			collPoints = {a,c,b} --below triangle
+			direction = mul3(abc,-1)
+		end
+	end
+end
+
+function gjkLine(a,b)
+	local ab = sub3(b,a)
+	local ao = mul3(a,-1)
+	
+	if dot(ab, ao)>0 then
+		searchDirection = cross(cross(ab, ao), ab)
+	else
+		collPoints = {a}
+		searchDirection = ao
+	end
+end
+
 function summonObject(index,conditions)
 	newPoints={}
 	conditions=conditions or{}
@@ -251,6 +348,14 @@ function onTick()
 			pushForce=-0.001
 			pushColour={255,0,0}
 		end
+		cr=0
+		if gB(4) then
+			cr=-0.025
+		end
+		if gB(5) then
+			cr=0.025
+		end
+		objects[2][1][1]=objects[2][1][1]+cr
 		
 		a=camRot[1]
 		b=camRot[2]
@@ -303,16 +408,20 @@ function onTick()
 				crPoint=object[7][i]
 				crPoint[2] = multVectorByMatrix(crPoint[1],curRotationMatrix)
 				for j = 1,3 do
-					crPoint[2][j]=crPoint[2][j]-camPos[j]+object[1][j]
+					crPoint[2][j]=crPoint[2][j]+object[1][j]
 				end
-				distances=crPoint[2]
-				crPoint[5]=sqrt(distances[1]^2 + distances[2]^2 + distances[3]^2)
+				crPoint[3]={}
+				for j = 1,3 do
+					crPoint[3][j]=crPoint[2][j]-camPos[j]
+				end
 				
-				crPoint[3]=multVectorByMatrix(crPoint[2],cameraRotationMatrix)
+				crPoint[4]=multVectorByMatrix(crPoint[3],cameraRotationMatrix)
+				distances=crPoint[3]
+				crPoint[7]=sqrt(distances[1]^2 + distances[2]^2 + distances[3]^2)
 				
-				crPoint[4]={crPoint[3][1]*screenScale/crPoint[3][3],
-				-crPoint[3][2]*screenScale/crPoint[3][3]}
-				crPoint[6]=crPoint[3][3]>0 and 1 or -1
+				crPoint[5]={crPoint[4][1]*screenScale/crPoint[4][3],
+				-crPoint[4][2]*screenScale/crPoint[4][3]}
+				crPoint[6]=crPoint[4][3]>0 and 1 or -1
 				
 			end
 			
@@ -320,7 +429,7 @@ function onTick()
 			bestT=2^16
 			for i=1,#object[8] do
 				curTri = object[8][i]
-				curHit = intersectTriangle({0,0,0},cameraRotationVector,object[7][curTri[1]][2],object[7][curTri[2]][2],object[7][curTri[3]][2])
+				curHit = intersectTriangle({0,0,0},cameraRotationVector,object[7][curTri[1]][3],object[7][curTri[2]][3],object[7][curTri[3]][3])
 				if curHit and t<bestT then
 					monkeyRayHit = trueVar
 					bestT=t
@@ -361,26 +470,26 @@ function onTick()
 				p1 = object[7][curTri[1]]
 				p2 = object[7][curTri[2]]
 				p3 = object[7][curTri[3]]
-				curTri[7]=mx(p1[5],p2[5],p3[5])
+				curTri[7]=mx(p1[7],p2[7],p3[7])
 				a=curTri[8]
-				b=p1[2]
+				b=p1[3]
 				if dot(a,b)>0 then
 					sideVal=p1[6]+p2[6]+p3[6]
 					if sideVal == 3 then
-						renderTris[#renderTris+1] = {p1[4],p2[4],p3[4],curTri[4],curTri[5],curTri[6],curTri[7]}
+						renderTris[#renderTris+1] = {p1[5],p2[5],p3[5],curTri[4],curTri[5],curTri[6],curTri[7]}
 					elseif sideVal >= -1 then
 						if p1[6]==-sideVal then
-							screenPoint1=p1[4]
-							screenPoint2=p2[4]
-							screenPoint3=p3[4]
+							screenPoint1=p1[5]
+							screenPoint2=p2[5]
+							screenPoint3=p3[5]
 						elseif p2[6]==-sideVal then
-							screenPoint1=p2[4]
-							screenPoint2=p1[4]
-							screenPoint3=p3[4]
+							screenPoint1=p2[5]
+							screenPoint2=p1[5]
+							screenPoint3=p3[5]
 						else
-							screenPoint1=p3[4]
-							screenPoint2=p2[4]
-							screenPoint3=p1[4]
+							screenPoint1=p3[5]
+							screenPoint2=p2[5]
+							screenPoint3=p1[5]
 						end
 						if sideVal == 1 then
 							screenPoint4=add(mul(sub(screenPoint2,screenPoint1),1000),screenPoint2)
@@ -399,7 +508,7 @@ function onTick()
 				end
 			end
 		end
-		
+		monkeyCollision = gjkCollisionDetection(objects[1][7],objects[2][7])
 		
 		table.sort(renderTris,function(a,b)return a[7]>b[7]end)
 		
@@ -432,6 +541,9 @@ function onDraw()
 	--end
 	
 	if loaded then
+		if monkeyCollision then
+			text(1,1,monkeyCollision)
+		end
 		--text(1,1,"Orientation Quaternion:")
 		--for i=1,4 do
 		--	text(1,i*6+1,stringRound3(monkeyRotationQuaternion[i]))
