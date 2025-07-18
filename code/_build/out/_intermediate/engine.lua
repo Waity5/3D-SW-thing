@@ -137,7 +137,7 @@ function gjkCollisionDetection(points1,points2)
 					gjkSupport(points1,points2)
 					
 					if dot(crPoint,searchDirection)-0.0001 <= crDist then
-						return closestFace[4],dot(crPoint,searchDirection)
+						return {closestFace[4],dot(crPoint,searchDirection)}
 					end
 					
 					looseEdges={}
@@ -253,6 +253,13 @@ function summonObject(index,conditions)
 		conditions[6]or{0,0,0},
 		newPoints,
 		newTris,
+		{}, -- collision mesh, not yet added
+		1, -- ability to be moved, higher is easier to be moved
+		{0,0,0}, -- instant movement to impart
+		{0,0,0}, -- instant velocity to impart
+		1, -- ability to be rotated, should really be a vec3
+		{0,0,0}, -- instant rotation to impart
+		{0,0,0}, -- instant rotational velocity to impart
 	}
 	objects[#objects+1]=newObject
 end
@@ -475,8 +482,11 @@ function onTick()
 		--keyboardRotationInput = {-0.01*gN(2),0.01*gN(1),0.01*gN(3)}
 		overalRayHit = falseVar
 		renderTris = {}
+		
 		for index = 1,#objects do
 			object = objects[index]
+			object[1]=add3(object[1],object[11])
+			object[11]={0,0,0}
 			object[4] = norm4(updateQuaternionByVector(object[4],object[5]))
 			object[5]=mul3(object[5],0.995)
 		
@@ -588,6 +598,10 @@ function onTick()
 			end
 		end
 		monkeyCollision = gjkCollisionDetection(objects[1][7],objects[2][7])
+		if monkeyCollision then
+			object = objects[2]
+			object[11] = add3(object[11],mul3(monkeyCollision[1],monkeyCollision[2]))
+		end
 		
 		table.sort(renderTris,function(a,b)return a[7]>b[7]end)
 		
@@ -621,7 +635,11 @@ function onDraw()
 	
 	if loaded then
 		if monkeyCollision then
-			text(1,1,monkeyCollision)
+			text(1,1,"Collision:")
+			for i=1,3 do
+				text(1,i*6+1,stringRound3(monkeyCollision[1][i]))
+			end
+			text(1,4*6+1,stringRound3(monkeyCollision[2]))
 		end
 		--text(1,1,"Orientation Quaternion:")
 		--for i=1,4 do
