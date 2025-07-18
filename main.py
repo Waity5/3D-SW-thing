@@ -10,113 +10,119 @@ if __name__ == '__main__':
     packets = []
     curmax = 8192
 
+    objects=["monkey","blender_cube"]
+
     total_render_points = 0
     total_render_tris = 0
     
-
-    # Using an existing stl file:
-    path = ".\\stl\\"
-    your_mesh = mesh.Mesh.from_file(path+'monkey.stl')
-    #your_mesh = mesh.Mesh.from_file(path+'buff_monkey.stl')
-    #your_mesh = mesh.Mesh.from_file(path+'blender_cube.stl')
-
-    # Or creating a new mesh (make sure not to overwrite the `mesh` import by
-    # naming it `mesh`):
-
-    # The mesh normals (calculated automatically)
-    #print(your_mesh.normals)
-    # The mesh vectors
-    #your_mesh.v0
-    your_mesh.v0, your_mesh.v1, your_mesh.v2
-    # Accessing individual points (concatenation of v0, v1 and v2 in triplets)
-    assert (your_mesh.points[0][0:3] == your_mesh.v0[0]).all()
-    assert (your_mesh.points[0][3:6] == your_mesh.v1[0]).all()
-    assert (your_mesh.points[0][6:9] == your_mesh.v2[0]).all()
-    assert (your_mesh.points[1][0:3] == your_mesh.v0[1]).all()
-
-    scale = 1
-
-    print(len(your_mesh.v0), "triangles")
-    points = list(your_mesh.v0)+list(your_mesh.v1)+list(your_mesh.v2)#your_mesh.points
-    points = [tuple(i) for i in points]
-    points = list(set(points))
-    #print(points)
-    #vectors = your_mesh.vectors*scale
-    #print(vectors)
-    #vectors = [[tuple([j[0],j[1],j[2]]) for j in i] for i in vectors]
-    #print(vectors[0][0])
-    #vectors_indexed = [[points.index(j)+1 for j in i] for i in vectors]
-    #vectors_indexed = [[i[0:2],i[1:3],[i[2],i[0]]] for i in vectors_indexed]
-    #for i in range(len(vectors_indexed)-1,-1,-1):
-    #    vectors_indexed += vectors_indexed[i]
-    #    vectors_indexed.pop(i)
-
-    
-
-    #[i.sort() for i in vectors_indexed]
-    #vectors_indexed = [tuple(i) for i in vectors_indexed]
-
-    #vectors_indexed = list(set(vectors_indexed))
-    #print(vectors_indexed)
-
-    #print(vectors)
-    things = [your_mesh.v0,your_mesh.v1,your_mesh.v2]
-
-    pnt = ""
-
-    points_start = total_render_points+1
-    for i in points:
-        packets.append((2,(i[0],i[2],i[1])))
-        total_render_points += 1
-    points_end = total_render_points
-
-    #pnt = ""
-    #for i in vectors_indexed:
-    #    pnt += (str(i[0])+"\t"+str(i[1])+"\n")
-    #SetC(pnt)
-    #input("hit enter to go to next thing (from vectors)")
-
-    
-
-    
-    #print(your_mesh.v0[0])
-
-    pnts = ["\\left[" for i in range(3)]
-    colour = [0,255,0]
-    length = len(things[0])
-    colours = []
-
-
-    for i in range(length):
-        x1,x2,x3=your_mesh.v0[i][0],your_mesh.v2[i][0],your_mesh.v1[i][0]
-        y1,y2,y3=your_mesh.v0[i][2],your_mesh.v2[i][2],your_mesh.v1[i][2]
-        z1,z2,z3=your_mesh.v0[i][1],your_mesh.v2[i][1],your_mesh.v1[i][1]
-        normalx = ((y2-y1)*(z3-z1))-((z2-z1)*(y3-y1))
-        normaly = ((z2-z1)*(x3-x1))-((x2-x1)*(z3-z1))
-        normalz = ((x2-x1)*(y3-y1))-((y2-y1)*(x3-x1))
-        normalDist = sqrt((normalx**2)+(normaly**2)+(normalz**2))
-        unitNormaly = normaly/normalDist
-        shade = (unitNormaly+1)/2
-        cur_colour = tuple([colour[i]*shade for i in range(3)])
+    for cur_object in objects:
         
-        colours.append(cur_colour)
+        
 
-    tris_start = total_render_tris+1
-    for i in range(len(your_mesh.v0)):
-        cur_colour = colours[i]
-        packets.append((3,(points.index(tuple(your_mesh.v0[i]))+1,
-                        points.index(tuple(your_mesh.v1[i]))+1,
-                        points.index(tuple(your_mesh.v2[i]))+1,
-                        cur_colour[0],
-                        cur_colour[1],
-                        cur_colour[2],
-                        )))
-        total_render_tris += 1
-    tris_end = total_render_tris
+        # Using an existing stl file:
+        path = ".\\stl\\"
+        #your_mesh = mesh.Mesh.from_file(path+'monkey.stl')
+        #your_mesh = mesh.Mesh.from_file(path+'buff_monkey.stl')
+        #your_mesh = mesh.Mesh.from_file(path+'blender_cube.stl')
+        your_mesh = mesh.Mesh.from_file(path+cur_object+".stl")
 
-    packets.append((1,(points_start,points_end,tris_start,tris_end)))
+        # Or creating a new mesh (make sure not to overwrite the `mesh` import by
+        # naming it `mesh`):
 
-    
+        # The mesh normals (calculated automatically)
+        #print(your_mesh.normals)
+        # The mesh vectors
+        #your_mesh.v0
+        your_mesh.v0, your_mesh.v1, your_mesh.v2
+        # Accessing individual points (concatenation of v0, v1 and v2 in triplets)
+        assert (your_mesh.points[0][0:3] == your_mesh.v0[0]).all()
+        assert (your_mesh.points[0][3:6] == your_mesh.v1[0]).all()
+        assert (your_mesh.points[0][6:9] == your_mesh.v2[0]).all()
+        assert (your_mesh.points[1][0:3] == your_mesh.v0[1]).all()
+
+        scale = 1
+
+        print(len(your_mesh.v0), "triangles")
+        points = list(your_mesh.v0)+list(your_mesh.v1)+list(your_mesh.v2)#your_mesh.points
+        points = [tuple(i) for i in points]
+        points = list(set(points))
+        #print(points)
+        #vectors = your_mesh.vectors*scale
+        #print(vectors)
+        #vectors = [[tuple([j[0],j[1],j[2]]) for j in i] for i in vectors]
+        #print(vectors[0][0])
+        #vectors_indexed = [[points.index(j)+1 for j in i] for i in vectors]
+        #vectors_indexed = [[i[0:2],i[1:3],[i[2],i[0]]] for i in vectors_indexed]
+        #for i in range(len(vectors_indexed)-1,-1,-1):
+        #    vectors_indexed += vectors_indexed[i]
+        #    vectors_indexed.pop(i)
+
+        
+
+        #[i.sort() for i in vectors_indexed]
+        #vectors_indexed = [tuple(i) for i in vectors_indexed]
+
+        #vectors_indexed = list(set(vectors_indexed))
+        #print(vectors_indexed)
+
+        #print(vectors)
+        things = [your_mesh.v0,your_mesh.v1,your_mesh.v2]
+
+        pnt = ""
+
+        points_start = total_render_points+1
+        for i in points:
+            packets.append((2,(i[0],i[2],i[1])))
+            total_render_points += 1
+        points_end = total_render_points
+
+        #pnt = ""
+        #for i in vectors_indexed:
+        #    pnt += (str(i[0])+"\t"+str(i[1])+"\n")
+        #SetC(pnt)
+        #input("hit enter to go to next thing (from vectors)")
+
+        
+
+        
+        #print(your_mesh.v0[0])
+
+        pnts = ["\\left[" for i in range(3)]
+        colour = [0,255,0]
+        length = len(things[0])
+        colours = []
+
+
+        for i in range(length):
+            x1,x2,x3=your_mesh.v0[i][0],your_mesh.v2[i][0],your_mesh.v1[i][0]
+            y1,y2,y3=your_mesh.v0[i][2],your_mesh.v2[i][2],your_mesh.v1[i][2]
+            z1,z2,z3=your_mesh.v0[i][1],your_mesh.v2[i][1],your_mesh.v1[i][1]
+            normalx = ((y2-y1)*(z3-z1))-((z2-z1)*(y3-y1))
+            normaly = ((z2-z1)*(x3-x1))-((x2-x1)*(z3-z1))
+            normalz = ((x2-x1)*(y3-y1))-((y2-y1)*(x3-x1))
+            normalDist = sqrt((normalx**2)+(normaly**2)+(normalz**2))
+            unitNormaly = normaly/normalDist
+            shade = (unitNormaly+1)/2
+            cur_colour = tuple([colour[i]*shade for i in range(3)])
+            
+            colours.append(cur_colour)
+
+        tris_start = total_render_tris+1
+        for i in range(len(your_mesh.v0)):
+            cur_colour = colours[i]
+            packets.append((3,(points.index(tuple(your_mesh.v0[i]))+1,
+                            points.index(tuple(your_mesh.v1[i]))+1,
+                            points.index(tuple(your_mesh.v2[i]))+1,
+                            cur_colour[0],
+                            cur_colour[1],
+                            cur_colour[2],
+                            )))
+            total_render_tris += 1
+        tris_end = total_render_tris
+
+        packets.append((1,(points_start,points_end,tris_start,tris_end)))
+
+        
 
     obj_name = "3D Thing"
     base_name = "base_vehicle"
@@ -165,7 +171,7 @@ if __name__ == '__main__':
         end = text.find(find_end,start)
         if i==1:
             None
-            print(code.split("\n")[56-1])
+            print(code.split("\n")[256-1])
             
 
         assert start>0 and end>0, "Code insertion search terms not in base vehicle file"

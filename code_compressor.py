@@ -5,7 +5,7 @@ def compress(text,print_vars=False,delete_newlines=False):
                "else","elseif","and","or","not","in","onDraw","onDraw","onTick",
                "math","input","output","true","false","ipairs","httpReply",
                "type","table","nil",
-               "screen","async","property","string"
+               "screen","async","property","string","break"
                ]
     include = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
     includeNum = "0123456789"

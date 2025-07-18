@@ -17,6 +17,7 @@ sin=m.sin
 cos=m.cos
 tan=m.tan
 unpack=table.unpack
+bigNum=math.huge
 
 function add(a,b)return{(a[1]+b[1]),(a[2]+b[2])}end
 function cross(a,b)return a[1]*b[2]-a[2]*b[1]end
@@ -32,6 +33,8 @@ function add3(a,b)return{a[1]+b[1],a[2]+b[2],a[3]+b[3]}end
 function sub3(a,b)return{a[1]-b[1],a[2]-b[2],a[3]-b[3]}end
 function mul3(a,b)return{a[1]*b,a[2]*b,a[3]*b}end
 function stringRound3(a)return string.format("%.3f", a or 0)end
+function crossPoints(a,b,c)return cross(sub3(b,a),sub3(c,a))end
+function norm3(a)return mul3(a,1/sqrt(a[1]^2+a[2]^2+a[3]^2))end
 
 M={}
 romCr=1
@@ -51,31 +54,35 @@ fov=90*angleConvert
 screenScale=1
 tick=0
 
+function gjkSupport(points1,points2)
+	searchDirectionInverse=mul3(searchDirection,-1)
+	local crDist=-bigNum
+	for i,v in ipairsVar(points1) do
+		crDot = dot(v[2],searchDirection)
+		if crDot>crDist then
+			point1=v[2]
+			crDist=crDot
+		end
+	end
+	crDist=-bigNum
+	for i,v in ipairsVar(points2) do
+		crDot = dot(v[2],searchDirectionInverse)
+		if crDot>crDist then
+			point2=v[2]
+			crDist=crDot
+		end
+	end
+	crPoint = sub3(point1,point2)
+end
+
 function gjkCollisionDetection(points1,points2)
 	searchDirection={1,0,0}
 	collPoints={}
 	while trueVar do
-		searchDirectionInverse=mul3(searchDirection,-1)
-		dot1=-(2^32)
-		for i,v in ipairsVar(points1) do
-			crDot = dot(v[2],searchDirection)
-			if crDot>dot1 then
-				point1=v[2]
-				dot1=crDot
-			end
-		end
-		dot2=-(2^32)
-		for i,v in ipairsVar(points2) do
-			crDot = dot(v[2],searchDirectionInverse)
-			if crDot>dot2 then
-				point2=v[2]
-				dot2=crDot
-			end
-		end
+		gjkSupport(points1,points2)
 		
-		crPoint = sub3(point1,point2)
 		if dot(crPoint,searchDirection)<=0 then
-			return "NO"
+			return
 		end
 		
 		collPoints = {crPoint, collPoints[1], collPoints[2], collPoints[3]}
@@ -98,9 +105,80 @@ function gjkCollisionDetection(points1,points2)
 				gjkTri(a,c,d)
 			elseif dot(adb, ao)>0 then
 				gjkTri(a,d,b)
-			else
-				return "YES"
-			end
+			else -- expanded polytope algorithm
+				-- taken from https://github.com/kevinmoran/GJK/blob/master/GJK.h
+				--if trueVar then return "GOOD" end
+				faces={
+					{a,b,c},
+					{a,c,d},
+					{a,d,b},
+					{b,d,c}
+				}
+				for i,v in ipairs(faces) do -- gives every face a normal
+					v[4]=norm3(crossPoints(v[1],v[2],v[3]))
+					if dot(v[1], v[4]) < 0 then -- sanity check
+						v[1],v[2]=v[2],v[1]
+						v[4] = mul3(v[4],-1)
+					end
+				end
+				
+				for itteration = 1,32 do
+					crDist=bigNum -- zero should work
+					for i,v in ipairs(faces) do -- find closest face to origin
+						crDot = dot(v[1],v[4])
+						if crDot<crDist then
+							crDist = crDot
+							closestFace = v
+						end
+					end
+					searchDirection = closestFace[4]
+					
+					gjkSupport(points1,points2)
+					
+					if dot(crPoint,searchDirection)-0.0001 <= crDist then
+						return closestFace[4],dot(crPoint,searchDirection)
+					end
+					
+					looseEdges={}
+					for i=#faces,1,-1 do
+						crFace=faces[i]
+						if dot(crFace[4],sub3(crPoint,crFace[1]))>0 then -- triangle faces new point, remove it
+							for j=1,3 do
+								crEdge = {crFace[j],crFace[(j%3)+1]}
+								for k,crLooseEdge in ipairs(looseEdges) do
+									if crLooseEdge[1]==crEdge[2] and crLooseEdge[2]==crEdge[1] then -- edge is in list already, delete both
+										tableRemove(looseEdges,k)
+										crEdge=nilVar
+										break
+									end
+								end
+								
+								if crEdge then -- if edge wasn't deleted
+									looseEdges[#looseEdges+1]=crEdge
+								end
+							end
+							
+							-- now that its edges are dealt with, the triangle can be removed from the list
+							
+							tableRemove(faces,i)
+						end
+					end
+					
+					-- now with the edges found and the old triangles deleted, new triangles can be created
+					
+					for i,v in ipairs(looseEdges) do
+						newFace = {v[1],v[2],crPoint}
+						newFace[4] = norm3(crossPoints(newFace[1],newFace[2],newFace[3]))
+						
+						if dot(newFace[1], newFace[4]) < 0 then -- I don't think this is needed, the winding should be preserved naturally
+							newFace[1],newFace[2]=newFace[2],newFace[1]
+							newFace[4] = mul3(newFace[4],-1)
+						end
+						faces[#faces+1]=newFace
+					end
+				end
+				return --TIMEOUT
+			end -- expanded polytope algorithm over, now back to the code which will feed it
 		elseif c then
 			gjkTri(a,b,c)
 		elseif b then
@@ -159,7 +237,7 @@ function summonObject(index,conditions)
 	end
 	newTris={}
 	j=1
-	for i=M[1][1][3],M[1][1][4] do
+	for i=M[1][index][3],M[1][index][4] do
 		cr=M[3][i]
 		newTris[j]=cr
 		j=j+1
@@ -325,6 +403,7 @@ function onTick()
 			objects={}
 			summonObject(1)
 			summonObject(1,{[1]={3,0,0}})
+			summonObject(2,{[1]={-5,0,0}})
 		end
 		camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
 		camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
@@ -427,8 +506,8 @@ function onTick()
 			monkeyRayHit = falseVar
 			bestT=2^16
 			for i=1,#object[8] do
-				curTri = object[8][i]
-				curHit = intersectTriangle({0,0,0},cameraRotationVector,object[7][curTri[1]][3],object[7][curTri[2]][3],object[7][curTri[3]][3])
+				curTri = object[8][i],1
+				curHit = intersectTriangle({0,0,0},cameraRotationVector,object[7][curTri[1]][3],object[7][curTri[2]][3],object[7][curTri[3]][3]),1
 				if curHit and t<bestT then
 					monkeyRayHit = trueVar
 					bestT=t
@@ -520,7 +599,7 @@ end
 
 function onDraw()
 	screenVar=screen
-	local tri,rec,stCl,text=screenVar.drawTriangleF,screenVar.drawRectF,screenVar.setColor,screenVar.drawText --locals are faster because lua
+	local triF,tri,rec,stCl,text=screenVar.drawTriangleF,screenVar.drawTriangle,screenVar.drawRectF,screenVar.setColor,screenVar.drawText --locals are faster because lua
 	w = screenVar.getWidth()
 	h = screenVar.getHeight()
 	w2=w/2
@@ -569,7 +648,9 @@ function onDraw()
 			p2 = curTri[2]
 			p3 = curTri[3]
 			stCl(curTri[4],curTri[5],curTri[6])
-			tri(p1[1]+w2,p1[2]+h2,p2[1]+w2,p2[2]+h2,p3[1]+w2,p3[2]+h2)
+			triF(p1[1]+w2,p1[2]+h2,p2[1]+w2,p2[2]+h2,p3[1]+w2,p3[2]+h2)
+			stCl(curTri[4]*0.5,curTri[5]*0.5,curTri[6]*0.5)
+			tri(p1[1]+w2,p1[2]+h2-0.5,p2[1]+w2,p2[2]+h2-0.5,p3[1]+w2,p3[2]+h2-0.5)
 		end
 		
 		stCl(unpack(pushColour))
