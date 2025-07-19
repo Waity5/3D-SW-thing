@@ -6,16 +6,23 @@ import os
 import numpy
 from stl import mesh
 
+def sq(a):
+    factor=2.2
+    return tuple([round((i**factor)/(255**(factor-1))) for i in a])
+
 if __name__ == '__main__':
     packets = []
     curmax = 8192
 
-    objects=["monkey","blender_cube"]
+    objects=["monkey","blender_cube","wide_cube"]
+    object_colours=[(255,0,0),(255,0,0),(255,255,255)]
 
     total_render_points = 0
     total_render_tris = 0
     
-    for cur_object in objects:
+    for index in range(len(objects)):
+
+        cur_object = objects[index]
         
         
 
@@ -88,7 +95,7 @@ if __name__ == '__main__':
         #print(your_mesh.v0[0])
 
         pnts = ["\\left[" for i in range(3)]
-        colour = [0,255,0]
+        colour = object_colours[index]
         length = len(things[0])
         colours = []
 
@@ -171,7 +178,7 @@ if __name__ == '__main__':
         end = text.find(find_end,start)
         if i==1:
             None
-            print(code.split("\n")[256-1])
+            print(code.split("\n")[147-1])
             
 
         assert start>0 and end>0, "Code insertion search terms not in base vehicle file"

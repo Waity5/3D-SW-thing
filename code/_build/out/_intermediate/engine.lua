@@ -54,33 +54,28 @@ rotateSpeed=90*angleConvert/tickRate
 fov=90*angleConvert
 screenScale=1
 tick=0
+deltaTime=1/62.5
 
-function gjkSupport(points1,points2)
-	searchDirectionInverse=mul3(searchDirection,-1)
+function gjkSupport(points,searchDirection)
 	local crDist=-bigNum
-	for i,v in ipairsVar(points1) do
+	for i,v in ipairsVar(points) do
 		crDot = dot(v[2],searchDirection)
-		if crDot>crDist then
-			point1=v[2]
+		if abs(crDot-crDist)<0.0001 then
+			pointList[#pointList+1]=v[2]
+		elseif crDot>crDist then
+			point=v[2]
+			pointList={point}
 			crDist=crDot
 		end
 	end
-	crDist=-bigNum
-	for i,v in ipairsVar(points2) do
-		crDot = dot(v[2],searchDirectionInverse)
-		if crDot>crDist then
-			point2=v[2]
-			crDist=crDot
-		end
-	end
-	crPoint = sub3(point1,point2)
+	return point
 end
 
 function gjkCollisionDetection(points1,points2)
 	searchDirection={1,0,0}
 	collPoints={}
 	while trueVar do
-		gjkSupport(points1,points2)
+		crPoint = sub3(gjkSupport(points1,searchDirection),gjkSupport(points2,mul3(searchDirection,-1)))
 		
 		if dot(crPoint,searchDirection)<=0 then
 			return
@@ -134,7 +129,7 @@ function gjkCollisionDetection(points1,points2)
 					end
 					searchDirection = closestFace[4]
 					
-					gjkSupport(points1,points2)
+					crPoint = sub3(gjkSupport(points1,searchDirection),gjkSupport(points2,mul3(searchDirection,-1)))
 					
 					if dot(crPoint,searchDirection)-0.0001 <= crDist then
 						return {closestFace[4],dot(crPoint,searchDirection)}
@@ -254,12 +249,9 @@ function summonObject(index,conditions)
 		newPoints,
 		newTris,
 		{}, -- collision mesh, not yet added
-		1, -- ability to be moved, higher is easier to be moved
-		{0,0,0}, -- instant movement to impart
-		{0,0,0}, -- instant velocity to impart
-		1, -- ability to be rotated, should really be a vec3
-		{0,0,0}, -- instant rotation to impart
-		{0,0,0}, -- instant rotational velocity to impart
+		conditions[7]or 1, -- ability to be moved, higher is easier to be moved
+		conditions[8]or 1, -- ability to be rotated, should really be a vec3
+		conditions[9]or{0,0,0}, -- gravity
 	}
 	objects[#objects+1]=newObject
 end
@@ -409,9 +401,10 @@ function onTick()
 		tick = tick+1
 		if init then
 			objects={}
-			summonObject(1)
-			summonObject(1,{[1]={3,0,0}})
+			summonObject(2)
+			summonObject(2,{[1]={3,0,0}})
 			summonObject(2,{[1]={-5,0,0}})
+			summonObject(3,{[1]={0,-5,0},[8]=0})
 		end
 		camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
 		camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
@@ -427,11 +420,11 @@ function onTick()
 		pushForce=0
 		pushColour={255,255,255}
 		if gB(1) then
-			pushForce=0.001
+			pushForce=0.1
 			pushColour={0,0,255}
 		end
 		if gB(3) then
-			pushForce=-0.001
+			pushForce=-0.1
 			pushColour={255,0,0}
 		end
 		cr=0
@@ -485,10 +478,12 @@ function onTick()
 		
 		for index = 1,#objects do
 			object = objects[index]
-			object[1]=add3(object[1],object[11])
-			object[11]={0,0,0}
-			object[4] = norm4(updateQuaternionByVector(object[4],object[5]))
-			object[5]=mul3(object[5],0.995)
+			object[4] = norm4(updateQuaternionByVector(object[4],mul3(object[5],deltaTime)))
+			object[1] = add3(object[1],mul3(object[2],deltaTime)) -- apply velocity to position
+			object[2] = add3(object[2],mul3(object[3],deltaTime)) -- apply acceleration to velocity
+			object[3] = mul3(object[12],1) -- reset acceleration to gravity
+			object[2] = mul3(object[2],0.995) -- slow down velocity
+			object[5] = mul3(object[5],0.995) -- slow down rotation
 		
 			curRotationMatrix = quaternionToMatrix(norm4(object[4]))
 		
@@ -517,8 +512,8 @@ function onTick()
 			monkeyRayHit = falseVar
 			bestT=2^16
 			for i=1,#object[8] do
-				curTri = object[8][i],1
-				curHit = intersectTriangle({0,0,0},cameraRotationVector,object[7][curTri[1]][3],object[7][curTri[2]][3],object[7][curTri[3]][3]),1
+				curTri = object[8][i]
+				curHit = intersectTriangle({0,0,0},cameraRotationVector,object[7][curTri[1]][3],object[7][curTri[2]][3],object[7][curTri[3]][3])
 				if curHit and t<bestT then
 					monkeyRayHit = trueVar
 					bestT=t
@@ -536,7 +531,7 @@ function onTick()
 				collPointCamRelative[2]*screenScale/collPointCamRelative[3]}
 			end
 			
-			if true then
+			if object[11]>0 or not object[8][1][8]then
 				for i=1,#object[8] do
 					curTri = object[8][i]
 					p1 = object[7][curTri[1]]
@@ -598,9 +593,29 @@ function onTick()
 			end
 		end
 		monkeyCollision = gjkCollisionDetection(objects[1][7],objects[2][7])
+		--monkeyCollision = gjkCollisionDetection(objects[1][7],objects[2][7])
 		if monkeyCollision then
-			object = objects[2]
-			object[11] = add3(object[11],mul3(monkeyCollision[1],monkeyCollision[2]))
+			gjkSupport(objects[1][7],monkeyCollision[1])
+			collPoints1 = pointList
+			gjkSupport(objects[2][7],mul3(monkeyCollision[1],-1))
+			collPoints2 = pointList
+			
+			if #collPoints1==1 then
+				trueContactPoint = collPoints1[1]
+			elseif #collPoints2==1 then
+				trueContactPoint = collPoints2[1]
+			elseif #collPoints1==2 and #collPoints2==2 then -- https://en.wikipedia.org/wiki/Skew_lines#Distance
+				direction1=sub3(collPoints1[2],collPoints1[1])
+				direction2=sub3(collPoints2[2],collPoints2[1])
+				normal2 = cross(direction2,cross(direction1,direction2))
+				trueContactPoint = add3(collPoints1[1],
+				mul3(direction1,
+				dot(sub3(collPoints2[1],collPoints1[1]),normal2) / dot(direction1,normal2)))
+			else
+				trueContactPoint = nilVar
+			end
+			
+			--object[1] = add3(object[1],mul3(monkeyCollision[1],monkeyCollision[2]))
 		end
 		
 		table.sort(renderTris,function(a,b)return a[7]>b[7]end)
@@ -634,12 +649,51 @@ function onDraw()
 	--end
 	
 	if loaded then
+		for i=1,#renderTris do
+			curTri = renderTris[i]
+			p1 = curTri[1]
+			p2 = curTri[2]
+			p3 = curTri[3]
+			stCl(curTri[4],curTri[5],curTri[6])
+			triF(p1[1]+w2,p1[2]+h2,p2[1]+w2,p2[2]+h2,p3[1]+w2,p3[2]+h2)
+			stCl(curTri[4]*0.5,curTri[5]*0.5,curTri[6]*0.5)
+			tri(p1[1]+w2,p1[2]+h2-0.5,p2[1]+w2,p2[2]+h2-0.5,p3[1]+w2,p3[2]+h2-0.5)
+		end
+		
+		if monkeyCollision then
+			stCl(255,255,0)
+			for i=1,#collPoints1 do
+				crPoint=multVectorByMatrix(sub3(collPoints1[i],camPos),cameraRotationMatrix)
+				crPoint=mul(mul(crPoint,1/crPoint[3]),screenScale)
+				rec(w2+crPoint[1]-2,h2-crPoint[2]-2,5,5)
+			end
+			stCl(0,255,255)
+			for i=1,#collPoints2 do
+				crPoint=multVectorByMatrix(sub3(collPoints2[i],camPos),cameraRotationMatrix)
+				crPoint=mul(mul(crPoint,1/crPoint[3]),screenScale)
+				rec(w2+crPoint[1]-2,h2-crPoint[2]-2,5,5)
+			end
+			if trueContactPoint then
+				stCl(255,0,255)
+				crPoint=multVectorByMatrix(sub3(trueContactPoint,camPos),cameraRotationMatrix)
+				crPoint=mul(mul(crPoint,1/crPoint[3]),screenScale)
+				rec(w2+crPoint[1]-2,h2-crPoint[2]-2,5,5)
+			end
+		end
+		
+		stCl(255,255,255)
+		
 		if monkeyCollision then
 			text(1,1,"Collision:")
 			for i=1,3 do
 				text(1,i*6+1,stringRound3(monkeyCollision[1][i]))
 			end
 			text(1,4*6+1,stringRound3(monkeyCollision[2]))
+		end
+		if trueContactPoint then
+			for i=1,3 do
+				text(1,i*6+37,stringRound3(trueContactPoint[i]))
+			end
 		end
 		--text(1,1,"Orientation Quaternion:")
 		--for i=1,4 do
@@ -659,18 +713,6 @@ function onDraw()
 		--end
 		
 		--text(100,1,monkeyRayHit and "YES" or "NO")
-		
-		
-		for i=1,#renderTris do
-			curTri = renderTris[i]
-			p1 = curTri[1]
-			p2 = curTri[2]
-			p3 = curTri[3]
-			stCl(curTri[4],curTri[5],curTri[6])
-			triF(p1[1]+w2,p1[2]+h2,p2[1]+w2,p2[2]+h2,p3[1]+w2,p3[2]+h2)
-			stCl(curTri[4]*0.5,curTri[5]*0.5,curTri[6]*0.5)
-			tri(p1[1]+w2,p1[2]+h2-0.5,p2[1]+w2,p2[2]+h2-0.5,p3[1]+w2,p3[2]+h2-0.5)
-		end
 		
 		stCl(unpack(pushColour))
 		
