@@ -58,7 +58,7 @@ deltaTime=1/62.5
 function applyForce(object,position,force)
 	collPointObjectRelative=sub3(position,object[1])
 	--collDirObjectRelative=divVectorByRotationMatrix(cameraRotationVector,curRotationMatrix)
-	object[5]=add3(object[5],mul3(cross(collPointObjectRelative,force),-object[11])) -- not sure why the minus is needed
+	object[5]=add3(object[5],mul3(cross(collPointObjectRelative,force),object[11]))
 	object[2]=add3(object[2],mul3(force,object[10]))
 end
 
@@ -92,14 +92,14 @@ function gjkCollisionDetection(points1,points2)
 		local a,b,c,d=unpack(collPoints)
 		
 		if d then
-			local ab = sub3(b,a)
-			local ac = sub3(c,a)
-			local ad = sub3(d,a)
-			local ao = mul3(a,-1)
+			ab = sub3(b,a)
+			ac = sub3(c,a)
+			ad = sub3(d,a)
+			ao = mul3(a,-1)
 			
-			local abc = cross(ab,ac)
-			local acd = cross(ac,ad)
-			local adb = cross(ad,ab)
+			abc = cross(ab,ac)
+			acd = cross(ac,ad)
+			adb = cross(ad,ab)
 			
 			if dot(abc, ao)>0 then
 				gjkTri(a,b,c)
@@ -118,10 +118,6 @@ function gjkCollisionDetection(points1,points2)
 				}
 				for i,v in ipairs(faces) do -- gives every face a normal
 					v[4]=norm3(crossPoints(v[1],v[2],v[3]))
-					if dot(v[1], v[4]) < 0 then -- sanity check
-						v[1],v[2]=v[2],v[1]
-						v[4] = mul3(v[4],-1)
-					end
 				end
 				
 				for itteration = 1,32 do
@@ -172,10 +168,10 @@ function gjkCollisionDetection(points1,points2)
 						newFace = {v[1],v[2],crPoint}
 						newFace[4] = norm3(crossPoints(newFace[1],newFace[2],newFace[3]))
 						
-						if dot(newFace[1], newFace[4]) < 0 then -- I don't think this is needed, the winding should be preserved naturally
-							newFace[1],newFace[2]=newFace[2],newFace[1]
-							newFace[4] = mul3(newFace[4],-1)
-						end
+						--if dot(newFace[1], newFace[4]) < 0 then -- I don't think this is needed, the winding should be preserved naturally
+						--	newFace[1],newFace[2]=newFace[2],newFace[1]
+						--	newFace[4] = mul3(newFace[4],-1)
+						--end
 						faces[#faces+1]=newFace
 					end
 				end
@@ -193,11 +189,11 @@ function gjkCollisionDetection(points1,points2)
 end
 
 function gjkTri(a,b,c)
-	local ab = sub3(b,a)
-	local ac = sub3(c,a)
-	local ao = mul3(a,-1)
+	ab = sub3(b,a)
+	ac = sub3(c,a)
+	ao = mul3(a,-1)
 	
-	local abc = cross(ab,ac)
+	abc = cross(ab,ac)
 	
 	if dot(cross(abc, ac), ao)>0 then -- closest to edge AC
 		collPoints = {a,c}
@@ -217,8 +213,8 @@ function gjkTri(a,b,c)
 end
 
 function gjkLine(a,b)
-	local ab = sub3(b,a)
-	local ao = mul3(a,-1)
+	ab = sub3(b,a)
+	ao = mul3(a,-1)
 	
 	if dot(ab, ao)>0 then
 		searchDirection = cross(cross(ab, ao), ab)
@@ -407,7 +403,7 @@ function onTick()
 		tick = tick+1
 		if init then
 			objects={}
-			summonObject(2)
+			summonObject(2,{[9]={0,-9.8,0}})
 			summonObject(2,{[1]={3,0,0}})
 			summonObject(2,{[1]={-5,0,0}})
 			summonObject(3,{[1]={0,-5,0},[7]=0,[8]=0})
@@ -484,7 +480,7 @@ function onTick()
 		
 		for index = 1,#objects do
 			object = objects[index]
-			object[4] = norm4(updateQuaternionByVector(object[4],mul3(object[5],deltaTime)))
+			object[4] = norm4(updateQuaternionByVector(object[4],mul3(object[5],-deltaTime))) -- apply rotational velocity to orientation, not sure why the minus is needed
 			object[1] = add3(object[1],mul3(object[2],deltaTime)) -- apply velocity to position
 			object[2] = add3(object[2],mul3(object[3],deltaTime)) -- apply acceleration to velocity
 			object[3] = mul3(object[12],1) -- reset acceleration to gravity
@@ -597,7 +593,7 @@ function onTick()
 			end
 		end
 		
-		collideAtAll = falseVar
+		--collideAtAll = falseVar
 		
 		for i,object1 in ipairsVar(objects) do
 			for j,object2 in ipairsVar(objects) do
@@ -605,7 +601,7 @@ function onTick()
 					isColliding = gjkCollisionDetection(object1[7],object2[7])
 					--monkeyCollision = gjkCollisionDetection(objects[1][7],objects[2][7])
 					if isColliding then
-						collideAtAll = trueVar
+						--collideAtAll = trueVar
 						gjkSupport(object1[7],isColliding[1])
 						collPoints1 = pointList
 						gjkSupport(object2[7],mul3(isColliding[1],-1))
@@ -625,17 +621,22 @@ function onTick()
 						else
 							trueContactPoint = collPoints1[1]
 						end
-						--velocity1 = add3(cross(object1[5],sub3(trueContactPoint,object1[1])),object1[2])
-						--velocity2 = add3(cross(object2[5],sub3(trueContactPoint,object2[1])),object2[2])
-						velocity1 = object1[2]
-						velocity2 = object2[2]
+						velocity1 = add3(cross(object1[5],sub3(trueContactPoint,object1[1])),object1[2])
+						velocity2 = add3(cross(object2[5],sub3(trueContactPoint,object2[1])),object2[2])
+						--velocity1 = object1[2]
+						--velocity2 = object2[2]
 						totalVelocity = dot(isColliding[1],velocity1)+dot(isColliding[1],mul3(velocity2,-1))
 						if totalVelocity>0 then
-							totalForce = mul3(isColliding[1],totalVelocity)
-							
+							totalInverseResistance = object1[10]+object2[10]
+							totalForce = mul3(isColliding[1],totalVelocity*(0.5-0.25*(abs(object1[10]-object2[10])/totalInverseResistance))) -- the inverse resistance maths causes a mult of 0.5 between identically weighted objects
+							-- and a multiplier of 0.25 between very differently weighted objects
 							applyForce(object1,trueContactPoint,mul3(totalForce,-1))
 							applyForce(object2,trueContactPoint,totalForce)
-							--object[1] = add3(object[1],mul3(monkeyCollision[1],monkeyCollision[2]))
+							
+							
+							
+							object1[1] = add3(object1[1],mul3(isColliding[1],-isColliding[2]*object1[10]/totalInverseResistance))
+							object2[1] = add3(object2[1],mul3(isColliding[1],isColliding[2]*object2[10]/totalInverseResistance))
 						end
 					end
 				end
@@ -685,26 +686,26 @@ function onDraw()
 			tri(p1[1]+w2,p1[2]+h2-0.5,p2[1]+w2,p2[2]+h2-0.5,p3[1]+w2,p3[2]+h2-0.5)
 		end
 		
-		if collideAtAll then
-			stCl(255,255,0)
-			for i=1,#collPoints1 do
-				crPoint=multVectorByMatrix(sub3(collPoints1[i],camPos),cameraRotationMatrix)
-				crPoint=mul(mul(crPoint,1/crPoint[3]),screenScale)
-				rec(w2+crPoint[1]-2,h2-crPoint[2]-2,5,5)
-			end
-			stCl(0,255,255)
-			for i=1,#collPoints2 do
-				crPoint=multVectorByMatrix(sub3(collPoints2[i],camPos),cameraRotationMatrix)
-				crPoint=mul(mul(crPoint,1/crPoint[3]),screenScale)
-				rec(w2+crPoint[1]-2,h2-crPoint[2]-2,5,5)
-			end
-			if trueContactPoint then
-				stCl(255,0,255)
-				crPoint=multVectorByMatrix(sub3(trueContactPoint,camPos),cameraRotationMatrix)
-				crPoint=mul(mul(crPoint,1/crPoint[3]),screenScale)
-				rec(w2+crPoint[1]-2,h2-crPoint[2]-2,5,5)
-			end
-		end
+		--if collideAtAll then
+		--	stCl(255,255,0)
+		--	for i=1,#collPoints1 do
+		--		crPoint=multVectorByMatrix(sub3(collPoints1[i],camPos),cameraRotationMatrix)
+		--		crPoint=mul(mul(crPoint,1/crPoint[3]),screenScale)
+		--		rec(w2+crPoint[1]-2,h2-crPoint[2]-2,5,5)
+		--	end
+		--		stCl(0,255,255)
+		--	for i=1,#collPoints2 do
+		--		crPoint=multVectorByMatrix(sub3(collPoints2[i],camPos),cameraRotationMatrix)
+		--		crPoint=mul(mul(crPoint,1/crPoint[3]),screenScale)
+		--		rec(w2+crPoint[1]-2,h2-crPoint[2]-2,5,5)
+		--	end
+		--	if trueContactPoint then
+		--		stCl(255,0,255)
+		--		crPoint=multVectorByMatrix(sub3(trueContactPoint,camPos),cameraRotationMatrix)
+		--		crPoint=mul(mul(crPoint,1/crPoint[3]),screenScale)
+		--		rec(w2+crPoint[1]-2,h2-crPoint[2]-2,5,5)
+		--	end
+		--end
 		
 		stCl(255,255,255)
 		
