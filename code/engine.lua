@@ -20,19 +20,15 @@ unpack=table.unpack
 bigNum=math.huge
 
 function add(a,b)return{(a[1]+b[1]),(a[2]+b[2])}end
-function cross(a,b)return a[1]*b[2]-a[2]*b[1]end
 function sub(a,b)return{(a[1]-b[1]),(a[2]-b[2])}end
 function mul(a,b)return{a[1]*b,a[2]*b}end
-function wrap(a)return ((a+180)%360)-180 end
-function at(a)return m.atan(a)*180/pi end
-function at2(a)return m.atan(a[2],a[1])*180/pi end
-function clmp(a,b,c)return mn(mx(b,a),c)end
-function rnd(a)return flr(a+0.5)end
-function dist(a,b)return sqrt(((a[1]-b[1])^2)+((a[2]-b[2])^2)+((a[3]-b[3])^2))end
+--function clmp(a,b,c)return mn(mx(b,a),c)end
+--function rnd(a)return flr(a+0.5)end
+--function dist(a,b)return sqrt(((a[1]-b[1])^2)+((a[2]-b[2])^2)+((a[3]-b[3])^2))end
 function add3(a,b)return{a[1]+b[1],a[2]+b[2],a[3]+b[3]}end
 function sub3(a,b)return{a[1]-b[1],a[2]-b[2],a[3]-b[3]}end
 function mul3(a,b)return{a[1]*b,a[2]*b,a[3]*b}end
-function stringRound3(a)return string.format("%.3f", a or 0)end
+--function stringRound3(a)return string.format("%.3f", a or 0)end
 function crossPoints(a,b,c)return cross(sub3(b,a),sub3(c,a))end
 function norm3(a)return mul3(a,1/sqrt(a[1]^2+a[2]^2+a[3]^2))end
 
@@ -314,12 +310,6 @@ function multQuaternionByQuaternion(quat1,quat2)
 	}
 end
 
-function addQuaternionByQuaternion(quat1,quat2)
-	local newQuat={}
-	for i =1,4 do newQuat[i]=quat1+quat2 end
-	return newQuat
-end
-
 function multVectorByMatrix(vec,matrix)
 	local newVec={}
 	for j = 1,3 do
@@ -332,17 +322,17 @@ function multVectorByMatrix(vec,matrix)
 	return newVec
 end
 
-function divVectorByRotationMatrix(vec,matrix)
-	local newVec={}
-	for j = 1,3 do
-		cr=0
-		for k = 1,3 do
-			cr=cr + vec[k]*matrix[k][j]
-		end
-		newVec[j]=cr
-	end
-	return newVec
-end
+--function divVectorByRotationMatrix(vec,matrix)
+--	local newVec={}
+--	for j = 1,3 do
+--		cr=0
+--		for k = 1,3 do
+--			cr=cr + vec[k]*matrix[k][j]
+--		end
+--		newVec[j]=cr
+--	end
+--	return newVec
+--end
 
 function norm4(a,correction)
 	correction=1/sqrt(a[1]^2 + a[2]^2 + a[3]^2 + a[4]^2)
@@ -436,14 +426,14 @@ function onTick()
 			pushForce=0.1
 			pushColour={255,0,0}
 		end
-		cr=0
-		if gB(4) then
-			cr=-0.025
-		end
-		if gB(5) then
-			cr=0.025
-		end
-		objects[2][1][1]=objects[2][1][1]+cr
+		--cr=0
+		--if gB(4) then
+		--	cr=-0.025
+		--end
+		--if gB(5) then
+		--	cr=0.025
+		--end
+		--objects[2][1][1]=objects[2][1][1]+cr
 		
 		a=camRot[1]
 		b=camRot[2]
@@ -541,18 +531,7 @@ function onTick()
 			if object[11]>0 or not object[8][1][8]then
 				for i=1,#object[8] do
 					curTri = object[8][i]
-					p1 = object[7][curTri[1]]
-					p2 = object[7][curTri[2]]
-					p3 = object[7][curTri[3]]
-					p1p = p1[2]
-					p2p = p2[2]
-					p3p = p3[2]
-					d1,d2={},{}
-					for j=1,3 do
-						d1[j]=p2p[j]-p1p[j]
-						d2[j]=p3p[j]-p1p[j]
-					end
-					curTri[8]=cross(d1,d2)
+					curTri[8]=crossPoints(object[7][curTri[1]][2], object[7][curTri[2]][2], object[7][curTri[3]][2])
 				end
 			end
 			
@@ -714,7 +693,7 @@ function onDraw()
 		--	end
 		--end
 		
-		stCl(255,255,255)
+		--stCl(255,255,255)
 		
 		--if monkeyCollision then
 		--	text(1,1,"Collision:")
