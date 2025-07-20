@@ -52,6 +52,11 @@ screenScale=1
 tick=0
 deltaTime=1/62.5
 
+function getMovementPerUnitForce(object,position,direction)
+	trueContactPoint1 = sub3(position,object[1])
+	return dot(cross(mul3(cross(trueContactPoint1,direction),object[11]),trueContactPoint1),direction) + object[10]
+end
+
 function applyForce(object,position,force)
 	collPointObjectRelative=sub3(position,object[1])
 	--collDirObjectRelative=divVectorByRotationMatrix(cameraRotationVector,curRotationMatrix)
@@ -63,7 +68,7 @@ function gjkSupport(points,searchDirection)
 	local crDist=-bigNum
 	for i,v in ipairsVar(points) do
 		crDot = dot(v[2],searchDirection)
-		if abs(crDot-crDist)<0.0001 then
+		if abs(crDot-crDist)<0.001 then
 			pointList[#pointList+1]=v[2]
 		elseif crDot>crDist then
 			point=v[2]
@@ -130,7 +135,7 @@ function gjkCollisionDetection(points1,points2)
 					
 					crPoint = sub3(gjkSupport(points1,searchDirection),gjkSupport(points2,mul3(searchDirection,-1)))
 					
-					if dot(crPoint,searchDirection)-0.0001 <= crDist then
+					if dot(crPoint,searchDirection)-0.001 <= crDist then
 						return {closestFace[4],dot(crPoint,searchDirection)}
 					end
 					
@@ -402,8 +407,8 @@ function onTick()
 		tick = tick+1
 		if init then
 			objects={}
-			for i=-2,2 do
-				for j=-2,2 do
+			for i=-0,0 do
+				for j=-0,0 do
 					summonObject(2,{[1]={2*i,0,2*j}})
 				end
 			end
@@ -621,10 +626,11 @@ function onTick()
 						end
 						velocity1 = add3(cross(object1[5],sub3(trueContactPoint,object1[1])),object1[2])
 						velocity2 = add3(cross(object2[5],sub3(trueContactPoint,object2[1])),object2[2])
+						totalVelocity = sub3(velocity1,velocity2)
 						--velocity1 = object1[2]
 						--velocity2 = object2[2]
-						totalVelocity = dot(isColliding[1],velocity1)+dot(isColliding[1],mul3(velocity2,-1))
-						if totalVelocity>0 then
+						totalVelocityNormal = dot(isColliding[1],totalVelocity)
+						if totalVelocityNormal>0 then
 							--totalInverseResistance = object1[10]+object2[10]
 							--totalForce = mul3(isColliding[1],totalVelocity*(0.5-0.25*(abs(object1[10]-object2[10])/totalInverseResistance))) -- the inverse resistance maths causes a mult of 0.5 between identically weighted objects
 							-- and a multiplier of 0.25 between very differently weighted objects
@@ -634,19 +640,26 @@ function onTick()
 							--object1[1] = add3(object1[1],mul3(isColliding[1],-isColliding[2]*object1[10]/totalInverseResistance))
 							--object2[1] = add3(object2[1],mul3(isColliding[1],isColliding[2]*object2[10]/totalInverseResistance))
 							
-							trueContactPoint1 = sub3(trueContactPoint,object1[1])
-							velocityFromRotation1 = dot(cross(mul3(cross(trueContactPoint1,isColliding[1]),object1[11]),trueContactPoint1),isColliding[1])
-							velocityFromVelocity1 = object1[10]
-							trueContactPoint2 = sub3(trueContactPoint,object2[1])
-							velocityFromRotation2 = dot(cross(mul3(cross(trueContactPoint2,isColliding[1]),object2[11]),trueContactPoint2),isColliding[1])
-							velocityFromVelocity2 = object2[10]
-							velocityFromAll = velocityFromRotation1 + velocityFromVelocity1 + velocityFromRotation2 + velocityFromVelocity2
+							movementFromPushing = getMovementPerUnitForce(object1,trueContactPoint,isColliding[1]) + getMovementPerUnitForce(object2,trueContactPoint,isColliding[1])
+							-- ^ should technically be velocityChangeFromPushing, but that's a bit long for my tastes
 							
-							desiredChangeInVelocity = totalVelocity*1.5
-							totalForce = desiredChangeInVelocity/velocityFromAll
+							desiredChangeInVelocity = totalVelocityNormal*1
+							pushForce = desiredChangeInVelocity/movementFromPushing
 							
-							applyForce(object1,trueContactPoint,mul3(isColliding[1],-totalForce))
-							applyForce(object2,trueContactPoint,mul3(isColliding[1],totalForce))
+							applyForce(object1,trueContactPoint,mul3(isColliding[1],-pushForce))
+							applyForce(object2,trueContactPoint,mul3(isColliding[1],pushForce))
+							
+							totalVelocityTangential = sub3(totalVelocity,mul3(isColliding[1],totalVelocityNormal))
+							
+							totalSpeedTangential = dist3(totalVelocityTangential,{0,0,0})
+							if totalSpeedTangential>0.001 then
+								unitFriction = norm3(totalVelocityTangential)
+								movementFromFriction = getMovementPerUnitForce(object1,trueContactPoint,unitFriction) + getMovementPerUnitForce(object2,trueContactPoint,unitFriction)
+								frictionForce = mn(totalSpeedTangential/movementFromFriction, pushForce)
+								
+								applyForce(object1,trueContactPoint,mul3(unitFriction,-frictionForce))
+								applyForce(object2,trueContactPoint,mul3(unitFriction,frictionForce))
+							end
 							
 							totalInverseResistance = object1[10]+object2[10]
 							object1[1] = add3(object1[1],mul3(isColliding[1],-isColliding[2]*object1[10]/totalInverseResistance))
@@ -724,6 +737,7 @@ function onDraw()
 		stCl(255,255,255)
 		
 		text(1,1,collCals)
+		
 		
 		--if monkeyCollision then
 		--	text(1,1,"Collision:")
