@@ -83,17 +83,22 @@ if __name__ == '__main__':
 
         pnt = ""
 
+        max_dist = 0
+
         points_mesh_start = total_points+1
         for i in points:
             packets.append((2,(i[0],i[2],i[1])))
             total_points += 1
+            max_dist = max(max_dist, dist(i,(0,0,0)))
         points_mesh_end = total_points
 
         points_phys_start = total_points+1
         for i in phys_points:
             packets.append((2,(i[0],i[2],i[1])))
             total_points += 1
+            max_dist = max(max_dist, dist(i,(0,0,0)))
         points_phys_end = total_points
+        print(max_dist,"max dist")
 
         #pnt = ""
         #for i in vectors_indexed:
@@ -139,7 +144,12 @@ if __name__ == '__main__':
             total_render_tris += 1
         tris_end = total_render_tris
 
-        packets.append((1,(points_mesh_start,points_mesh_end,tris_start,tris_end,points_phys_start,points_phys_end)))
+        packets.append((1,(
+            points_mesh_start,points_mesh_end,
+            tris_start,tris_end,
+            points_phys_start,points_phys_end,
+            max_dist,
+            )))
 
         
 
@@ -190,7 +200,7 @@ if __name__ == '__main__':
         end = text.find(find_end,start)
         if i==1:
             None
-            print(code.split("\n")[28-1])
+            print(code.split("\n")[50-1])
             
 
         assert start>0 and end>0, "Code insertion search terms not in base vehicle file"

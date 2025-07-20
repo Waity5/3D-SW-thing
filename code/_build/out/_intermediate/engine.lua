@@ -32,6 +32,7 @@ function mul3(a,b)return{a[1]*b,a[2]*b,a[3]*b}end
 --function stringRound3(a)return string.format("%.3f", a or 0)end
 function crossPoints(a,b,c)return cross(sub3(b,a),sub3(c,a))end
 function norm3(a)return mul3(a,1/sqrt(a[1]^2+a[2]^2+a[3]^2))end
+function dist3(a,b)return sqrt((a[1]-b[1])^2 + (a[2]-b[2])^2 + (a[3]-b[3])^2)end
 
 M={}
 romCr=1
@@ -258,6 +259,7 @@ function summonObject(index,conditions)
 		conditions[7]or 1, -- 10 ability to be moved, higher is easier to be moved
 		conditions[8]or 1, -- 11 ability to be rotated, should really be a vec3
 		conditions[9]or{0,0,0}, -- 12 gravity
+		M[1][index][7], -- 13 max point dist from object's origin
 	}
 	objects[#objects+1]=newObject
 end
@@ -401,13 +403,22 @@ function onTick()
 		tick = tick+1
 		if init then
 			objects={}
-			summonObject(2)
-			summonObject(1,{[1]={3,0,0}})
-			summonObject(2,{[1]={-5,0,0}})
+			for i=-2,2 do
+				for j=-2,2 do
+					summonObject(2,{[1]={2*i,0,2*j}})
+				end
+			end
+			--summonObject(2)
+			--summonObject(2,{[1]={2,0,0}})
+			--summonObject(2,{[1]={-2,0,0}})
 			summonObject(4,{[1]={0,-5,0},[7]=0,[8]=0})
 		end
-		camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
-		camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
+		if gB(31) then
+			camPos[2]=camPos[2]+gN(2)*moveSpeed
+		else
+			camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
+			camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
+		end
 		--camRot[3]=camRot[3]+gN(1)*rotateSpeed
 		camRot[1]=camRot[1]-gN(3)*rotateSpeed
 		camRot[2]=camRot[2]+gN(4)*rotateSpeed
@@ -581,10 +592,11 @@ function onTick()
 		end
 		
 		--collideAtAll = falseVar
-		
+		collCals = 0
 		for i,object1 in ipairsVar(objects) do
 			for j,object2 in ipairsVar(objects) do
-				if i~=j then
+				if i~=j and dist3(object1[1],object2[1])<=object1[13]+object2[13] then
+					collCals=collCals+1
 					isColliding = gjkCollisionDetection(object1[9],object2[9])
 					--monkeyCollision = gjkCollisionDetection(objects[1][7],objects[2][7])
 					if isColliding then
@@ -710,7 +722,9 @@ function onDraw()
 		--	end
 		--end
 		
-		--stCl(255,255,255)
+		stCl(255,255,255)
+		
+		text(1,1,collCals)
 		
 		--if monkeyCollision then
 		--	text(1,1,"Collision:")
