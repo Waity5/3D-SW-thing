@@ -20,9 +20,9 @@ tan=m.tan
 unpack=table.unpack
 bigNum=math.huge
 
-function add(a,b)return{(a[1]+b[1]),(a[2]+b[2])}end
-function sub(a,b)return{(a[1]-b[1]),(a[2]-b[2])}end
-function mul(a,b)return{a[1]*b,a[2]*b}end
+function add2(a,b)return{(a[1]+b[1]),(a[2]+b[2])}end
+function sub2(a,b)return{(a[1]-b[1]),(a[2]-b[2])}end
+function mul2(a,b)return{a[1]*b,a[2]*b}end
 --function clmp(a,b,c)return mn(mx(b,a),c)end
 --function rnd(a)return flr(a+0.5)end
 --function dist(a,b)return sqrt(((a[1]-b[1])^2)+((a[2]-b[2])^2)+((a[3]-b[3])^2))end
@@ -563,15 +563,15 @@ function onTick()
 							screenPoint3=p1[5]
 						end
 						if sideVal == 1 then
-							screenPoint4=add(mul(sub(screenPoint2,screenPoint1),1000),screenPoint2)
-							screenPoint5=add(mul(sub(screenPoint3,screenPoint1),1000),screenPoint3)
+							screenPoint4=add2(mul2(sub2(screenPoint2,screenPoint1),1000),screenPoint2)
+							screenPoint5=add2(mul2(sub2(screenPoint3,screenPoint1),1000),screenPoint3)
 							--renderTris[#renderTris+1] = {screenPoint2,screenPoint4,screenPoint3,255,0,0,curTri[7]}
 							--renderTris[#renderTris+1] = {screenPoint3,screenPoint4,screenPoint5,0,0,255,curTri[7]}
 							renderTris[#renderTris+1] = {screenPoint2,screenPoint4,screenPoint3,curTri[4],curTri[5],curTri[6],curTri[7]}
 							renderTris[#renderTris+1] = {screenPoint3,screenPoint4,screenPoint5,curTri[4],curTri[5],curTri[6],curTri[7]}
 						else
-							screenPoint4=add(mul(sub(screenPoint1,screenPoint2),1000),screenPoint2)
-							screenPoint5=add(mul(sub(screenPoint1,screenPoint3),1000),screenPoint3)
+							screenPoint4=add2(mul2(sub2(screenPoint1,screenPoint2),1000),screenPoint2)
+							screenPoint5=add2(mul2(sub2(screenPoint1,screenPoint3),1000),screenPoint3)
 							--renderTris[#renderTris+1] = {screenPoint1,screenPoint4,screenPoint5,255,0,255,curTri[7]}
 							renderTris[#renderTris+1] = {screenPoint1,screenPoint4,screenPoint5,curTri[4],curTri[5],curTri[6],curTri[7]}
 						end
@@ -614,14 +614,30 @@ function onTick()
 						--velocity2 = object2[2]
 						totalVelocity = dot(isColliding[1],velocity1)+dot(isColliding[1],mul3(velocity2,-1))
 						if totalVelocity>0 then
-							totalInverseResistance = object1[10]+object2[10]
-							totalForce = mul3(isColliding[1],totalVelocity*(0.5-0.25*(abs(object1[10]-object2[10])/totalInverseResistance))) -- the inverse resistance maths causes a mult of 0.5 between identically weighted objects
+							--totalInverseResistance = object1[10]+object2[10]
+							--totalForce = mul3(isColliding[1],totalVelocity*(0.5-0.25*(abs(object1[10]-object2[10])/totalInverseResistance))) -- the inverse resistance maths causes a mult of 0.5 between identically weighted objects
 							-- and a multiplier of 0.25 between very differently weighted objects
-							applyForce(object1,trueContactPoint,mul3(totalForce,-1))
-							applyForce(object2,trueContactPoint,totalForce)
+							--applyForce(object1,trueContactPoint,mul3(totalForce,-1))
+							--applyForce(object2,trueContactPoint,totalForce)
 							
+							--object1[1] = add3(object1[1],mul3(isColliding[1],-isColliding[2]*object1[10]/totalInverseResistance))
+							--object2[1] = add3(object2[1],mul3(isColliding[1],isColliding[2]*object2[10]/totalInverseResistance))
 							
+							trueContactPoint1 = sub3(trueContactPoint,object1[1])
+							velocityFromRotation1 = dot(cross(mul3(cross(trueContactPoint1,isColliding[1]),object1[11]),trueContactPoint1),isColliding[1])
+							velocityFromVelocity1 = object1[10]
+							trueContactPoint2 = sub3(trueContactPoint,object2[1])
+							velocityFromRotation2 = dot(cross(mul3(cross(trueContactPoint2,isColliding[1]),object2[11]),trueContactPoint2),isColliding[1])
+							velocityFromVelocity2 = object2[10]
+							velocityFromAll = velocityFromRotation1 + velocityFromVelocity1 + velocityFromRotation2 + velocityFromVelocity2
 							
+							desiredChangeInVelocity = totalVelocity*1.5
+							totalForce = desiredChangeInVelocity/velocityFromAll
+							
+							applyForce(object1,trueContactPoint,mul3(isColliding[1],-totalForce))
+							applyForce(object2,trueContactPoint,mul3(isColliding[1],totalForce))
+							
+							totalInverseResistance = object1[10]+object2[10]
 							object1[1] = add3(object1[1],mul3(isColliding[1],-isColliding[2]*object1[10]/totalInverseResistance))
 							object2[1] = add3(object2[1],mul3(isColliding[1],isColliding[2]*object2[10]/totalInverseResistance))
 						end
