@@ -14,10 +14,10 @@ if __name__ == '__main__':
     packets = []
     curmax = 8192
 
-    objects=["monkey","blender_cube","wide_cube"]
-    object_colours=[(255,0,0),(255,0,0),(255,255,255)]
+    objects=["monkey","blender_cube","wide_cube","wider_cube"]
+    object_colours=[(0,255,0),(255,0,0),(255,255,255),(255,255,255)]
 
-    total_render_points = 0
+    total_points = 0
     total_render_tris = 0
     
     for index in range(len(objects)):
@@ -31,7 +31,8 @@ if __name__ == '__main__':
         #your_mesh = mesh.Mesh.from_file(path+'monkey.stl')
         #your_mesh = mesh.Mesh.from_file(path+'buff_monkey.stl')
         #your_mesh = mesh.Mesh.from_file(path+'blender_cube.stl')
-        your_mesh = mesh.Mesh.from_file(path+cur_object+".stl")
+        your_mesh = mesh.Mesh.from_file(path+cur_object+"\\mesh.stl")
+        phys_mesh = mesh.Mesh.from_file(path+cur_object+"\\phys.stl")
 
         # Or creating a new mesh (make sure not to overwrite the `mesh` import by
         # naming it `mesh`):
@@ -53,6 +54,11 @@ if __name__ == '__main__':
         points = list(your_mesh.v0)+list(your_mesh.v1)+list(your_mesh.v2)#your_mesh.points
         points = [tuple(i) for i in points]
         points = list(set(points))
+        phys_points = list(phys_mesh.v0)+list(phys_mesh.v1)+list(phys_mesh.v2)#your_mesh.points
+        phys_points = [tuple(i) for i in phys_points]
+        phys_points = list(set(phys_points))
+        print(len(phys_points),"phys points")
+        
         #print(points)
         #vectors = your_mesh.vectors*scale
         #print(vectors)
@@ -77,11 +83,17 @@ if __name__ == '__main__':
 
         pnt = ""
 
-        points_start = total_render_points+1
+        points_mesh_start = total_points+1
         for i in points:
             packets.append((2,(i[0],i[2],i[1])))
-            total_render_points += 1
-        points_end = total_render_points
+            total_points += 1
+        points_mesh_end = total_points
+
+        points_phys_start = total_points+1
+        for i in phys_points:
+            packets.append((2,(i[0],i[2],i[1])))
+            total_points += 1
+        points_phys_end = total_points
 
         #pnt = ""
         #for i in vectors_indexed:
@@ -127,7 +139,7 @@ if __name__ == '__main__':
             total_render_tris += 1
         tris_end = total_render_tris
 
-        packets.append((1,(points_start,points_end,tris_start,tris_end)))
+        packets.append((1,(points_mesh_start,points_mesh_end,tris_start,tris_end,points_phys_start,points_phys_end)))
 
         
 

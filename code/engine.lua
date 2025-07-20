@@ -225,8 +225,8 @@ function gjkLine(a,b)
 end
 
 function summonObject(index,conditions)
-	newPoints={}
 	conditions=conditions or{}
+	newPoints={}
 	j=1
 	for i=M[1][index][1],M[1][index][2] do
 		cr=M[2][i]
@@ -240,6 +240,13 @@ function summonObject(index,conditions)
 		newTris[j]=cr
 		j=j+1
 	end
+	newPhys={}
+	j=1
+	for i=M[1][index][5],M[1][index][6] do
+		cr=M[2][i]
+		newPhys[j]={{cr[1],cr[2],cr[3]},{}}
+		j=j+1
+	end
 	
 	newObject={-- position, velocity, acceleration, orientation, rotation velocity, rotation acceleration, points, tris
 		conditions[1]or{0,0,0}, -- 1
@@ -250,7 +257,7 @@ function summonObject(index,conditions)
 		conditions[6]or{0,0,0}, -- 6
 		newPoints, -- 7
 		newTris, -- 8
-		{}, -- 9 collision mesh, not yet added
+		newPhys, -- 9 collision mesh, not yet added
 		conditions[7]or 1, -- 10 ability to be moved, higher is easier to be moved
 		conditions[8]or 1, -- 11 ability to be rotated, should really be a vec3
 		conditions[9]or{0,0,0}, -- 12 gravity
@@ -403,10 +410,10 @@ function onTick()
 		tick = tick+1
 		if init then
 			objects={}
-			summonObject(2,{[9]={0,-9.8,0}})
-			summonObject(2,{[1]={3,0,0}})
+			summonObject(2)
+			summonObject(1,{[1]={3,0,0}})
 			summonObject(2,{[1]={-5,0,0}})
-			summonObject(3,{[1]={0,-5,0},[7]=0,[8]=0})
+			summonObject(4,{[1]={0,-5,0},[7]=0,[8]=0})
 		end
 		camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
 		camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
@@ -489,26 +496,23 @@ function onTick()
 		
 			curRotationMatrix = quaternionToMatrix(norm4(object[4]))
 		
-		
-			for i=1,#object[7] do
-				crPoint=object[7][i]
-				crPoint[2] = multVectorByMatrix(crPoint[1],curRotationMatrix)
-				for j = 1,3 do
-					crPoint[2][j]=crPoint[2][j]+object[1][j]
+			
+			for i=7,9,2 do
+				for j=1,#object[i] do
+					crPoint=object[i][j]
+					crPoint[2] = multVectorByMatrix(crPoint[1],curRotationMatrix)
+					crPoint[2]=add3(crPoint[2],object[1])
+					crPoint[3]=sub3(crPoint[2],camPos)
+					
+					crPoint[4]=multVectorByMatrix(crPoint[3],cameraRotationMatrix)
+					distances=crPoint[3]
+					crPoint[7]=sqrt(distances[1]^2 + distances[2]^2 + distances[3]^2)
+					
+					crPoint[5]={crPoint[4][1]*screenScale/crPoint[4][3],
+					-crPoint[4][2]*screenScale/crPoint[4][3]}
+					crPoint[6]=crPoint[4][3]>0 and 1 or -1
+					
 				end
-				crPoint[3]={}
-				for j = 1,3 do
-					crPoint[3][j]=crPoint[2][j]-camPos[j]
-				end
-				
-				crPoint[4]=multVectorByMatrix(crPoint[3],cameraRotationMatrix)
-				distances=crPoint[3]
-				crPoint[7]=sqrt(distances[1]^2 + distances[2]^2 + distances[3]^2)
-				
-				crPoint[5]={crPoint[4][1]*screenScale/crPoint[4][3],
-				-crPoint[4][2]*screenScale/crPoint[4][3]}
-				crPoint[6]=crPoint[4][3]>0 and 1 or -1
-				
 			end
 			
 			monkeyRayHit = falseVar
@@ -525,6 +529,9 @@ function onTick()
 				overalRayHit = trueVar
 				collPoint=add3(mul3(cameraRotationVector,bestT),camPos)
 				applyForce(object,collPoint,mul3(cameraRotationVector,pushForce))
+				if gB(2) then
+					object[12]={0,-9.81,0}
+				end
 				
 				collPointCamRelative=multVectorByMatrix(sub3(collPoint,camPos),cameraRotationMatrix)
 				collPointScreenPos={collPointCamRelative[1]*screenScale/collPointCamRelative[3],
@@ -598,13 +605,13 @@ function onTick()
 		for i,object1 in ipairsVar(objects) do
 			for j,object2 in ipairsVar(objects) do
 				if i~=j then
-					isColliding = gjkCollisionDetection(object1[7],object2[7])
+					isColliding = gjkCollisionDetection(object1[9],object2[9])
 					--monkeyCollision = gjkCollisionDetection(objects[1][7],objects[2][7])
 					if isColliding then
 						--collideAtAll = trueVar
-						gjkSupport(object1[7],isColliding[1])
+						gjkSupport(object1[9],isColliding[1])
 						collPoints1 = pointList
-						gjkSupport(object2[7],mul3(isColliding[1],-1))
+						gjkSupport(object2[9],mul3(isColliding[1],-1))
 						collPoints2 = pointList
 						
 						if #collPoints1==1 then
