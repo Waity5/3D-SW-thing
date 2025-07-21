@@ -16,6 +16,7 @@ if __name__ == '__main__':
 
     objects=["monkey","blender_cube","wide_cube","wider_cube"]
     object_colours=[(0,255,0),(255,0,0),(255,255,255),(255,255,255)]
+    min_brightness = 0.2
 
     total_points = 0
     total_render_tris = 0
@@ -126,7 +127,7 @@ if __name__ == '__main__':
             normalz = ((x2-x1)*(y3-y1))-((y2-y1)*(x3-x1))
             normalDist = sqrt((normalx**2)+(normaly**2)+(normalz**2))
             unitNormaly = normaly/normalDist
-            shade = (unitNormaly+1)/2
+            shade = max((unitNormaly+1)/2,min_brightness)
             cur_colour = tuple([colour[i]*shade for i in range(3)])
             
             colours.append(cur_colour)

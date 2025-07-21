@@ -69,7 +69,7 @@ function gjkSupport(points,searchDirection)
 	local crDist=-bigNum
 	for i,v in ipairsVar(points) do
 		crDot = dot(v[2],searchDirection)
-		if abs(crDot-crDist)<0.001 then
+		if abs(crDot-crDist)<0.0001 then -- must be more strict than the epa's exit condition to prevent unreachable conditions
 			pointList[#pointList+1]=v[2]
 		elseif crDot>crDist then
 			point=v[2]
@@ -408,9 +408,9 @@ function onTick()
 		tick = tick+1
 		if init then
 			objects={}
-			for i=-0,0 do
-				for j=-0,0 do
-					summonObject(2,{[1]={2*i,0,2*j}})
+			for i=-1,1 do
+				for j=-1,1 do
+					summonObject(2,{[1]={i*2.5,0,j*2.5}})
 				end
 			end
 			--summonObject(2)
@@ -434,13 +434,18 @@ function onTick()
 		--	camRot[3]=camRot[3]+rotateSpeed
 		--end
 		pushForce=0
+		if gB(31) then
+			maxPushForce=0.5
+		else
+			maxPushForce=0.1
+		end
 		pushColour={255,255,255}
 		if gB(1) then
-			pushForce=-0.1
+			pushForce=-maxPushForce
 			pushColour={0,0,255}
 		end
 		if gB(3) then
-			pushForce=0.1
+			pushForce=maxPushForce
 			pushColour={255,0,0}
 		end
 		--cr=0
@@ -522,29 +527,6 @@ function onTick()
 				end
 			end
 			
-			monkeyRayHit = falseVar
-			bestT=2^16
-			for i=1,#object[8] do
-				curTri = object[8][i]
-				curHit = intersectTriangle({0,0,0},cameraRotationVector,object[7][curTri[1]][3],object[7][curTri[2]][3],object[7][curTri[3]][3])
-				if curHit and t<bestT then
-					monkeyRayHit = trueVar
-					bestT=t
-				end
-			end
-			if monkeyRayHit then
-				overalRayHit = trueVar
-				collPoint=add3(mul3(cameraRotationVector,bestT),camPos)
-				applyForce(object,collPoint,mul3(cameraRotationVector,pushForce))
-				if gB(2) then
-					object[12]={0,-9.81,0}
-				end
-				
-				collPointCamRelative=multVectorByMatrix(sub3(collPoint,camPos),cameraRotationMatrix)
-				collPointScreenPos={collPointCamRelative[1]*screenScale/collPointCamRelative[3],
-				collPointCamRelative[2]*screenScale/collPointCamRelative[3]}
-			end
-			
 			if object[11]>0 or not object[8][1][8]then
 				for i=1,#object[8] do
 					curTri = object[8][i]
@@ -596,6 +578,33 @@ function onTick()
 			end
 		end
 		
+		pushRayHit = falseVar
+		bestT=2^16
+		for i,object in ipairsVar(objects) do
+			for j=1,#object[8] do
+				curTri = object[8][j]
+				curHit = intersectTriangle({0,0,0},cameraRotationVector,object[7][curTri[1]][3],object[7][curTri[2]][3],object[7][curTri[3]][3])
+				if curHit and t<bestT then
+					pushRayHit = trueVar
+					bestT=t
+					bestObject=object
+				end
+			end
+		end
+		
+		if pushRayHit then
+			overalRayHit = trueVar
+			collPoint=add3(mul3(cameraRotationVector,bestT),camPos)
+			applyForce(bestObject,collPoint,mul3(cameraRotationVector,pushForce))
+			if gB(2) then
+				bestObject[12]={0,-9.81,0}
+			end
+			
+			collPointCamRelative=multVectorByMatrix(sub3(collPoint,camPos),cameraRotationMatrix)
+			collPointScreenPos={collPointCamRelative[1]*screenScale/collPointCamRelative[3],
+			collPointCamRelative[2]*screenScale/collPointCamRelative[3]}
+		end
+		
 		--collideAtAll = falseVar
 		collCals = 0
 		for i,object1 in ipairsVar(objects) do
@@ -625,11 +634,12 @@ function onTick()
 						else
 							trueContactPoint = collPoints1[1]
 						end
+						--velocity1 = object1[2]
+						--velocity2 = object2[2]
 						velocity1 = add3(cross(object1[5],sub3(trueContactPoint,object1[1])),object1[2])
 						velocity2 = add3(cross(object2[5],sub3(trueContactPoint,object2[1])),object2[2])
 						totalVelocity = sub3(velocity1,velocity2)
-						--velocity1 = object1[2]
-						--velocity2 = object2[2]
+						
 						totalVelocityNormal = dot(isColliding[1],totalVelocity)
 						if totalVelocityNormal>0 then
 							--totalInverseResistance = object1[10]+object2[10]
@@ -649,6 +659,15 @@ function onTick()
 							
 							applyForce(object1,trueContactPoint,mul3(isColliding[1],-pushForce))
 							applyForce(object2,trueContactPoint,mul3(isColliding[1],pushForce))
+							
+							-- re-calculating velocites since they will have changed
+							-- this step bugs me but it produces inaccurate & visibly wrong results otherwise
+							
+							velocity1 = add3(cross(object1[5],sub3(trueContactPoint,object1[1])),object1[2])
+							velocity2 = add3(cross(object2[5],sub3(trueContactPoint,object2[1])),object2[2])
+							totalVelocity = sub3(velocity1,velocity2)
+							
+							totalVelocityNormal = dot(isColliding[1],totalVelocity)
 							
 							totalVelocityTangential = sub3(totalVelocity,mul3(isColliding[1],totalVelocityNormal))
 							
