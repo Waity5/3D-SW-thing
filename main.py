@@ -14,8 +14,8 @@ if __name__ == '__main__':
     packets = []
     curmax = 8192
 
-    objects=["monkey","blender_cube","wide_cube","wider_cube"]
-    object_colours=[(0,255,0),(255,0,0),(255,255,255),(255,255,255)]
+    objects=["monkey","blender_cube","wide_cube","wider_cube","cylinder","utah_teapot","widest_cube"]
+    object_colours=[(0,255,0),(255,0,0),(255,255,255),(255,255,255),(0,0,255),(0,255,0),(255,255,255)]
     min_brightness = 0.2
 
     total_points = 0
@@ -201,7 +201,7 @@ if __name__ == '__main__':
         end = text.find(find_end,start)
         if i==1:
             None
-            print(code.split("\n")[50-1])
+            print(code.split("\n")[51-1])
             
 
         assert start>0 and end>0, "Code insertion search terms not in base vehicle file"

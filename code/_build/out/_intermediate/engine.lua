@@ -46,7 +46,7 @@ camPos={0,0,-3}
 camRot={0,0,0}
 tickRate=62.5
 angleConvert=pi/180
-moveSpeed=3/tickRate
+moveSpeed=5/tickRate
 rotateSpeed=90*angleConvert/tickRate
 fov=90*angleConvert
 screenScale=1
@@ -69,7 +69,7 @@ function gjkSupport(points,searchDirection)
 	local crDist=-bigNum
 	for i,v in ipairsVar(points) do
 		crDot = dot(v[2],searchDirection)
-		if abs(crDot-crDist)<0.0001 then -- must be more strict than the epa's exit condition to prevent unreachable conditions
+		if abs(crDot-crDist)<0.0005 then -- must be more strict than the epa's exit condition to prevent unreachable conditions
 			pointList[#pointList+1]=v[2]
 		elseif crDot>crDist then
 			point=v[2]
@@ -83,7 +83,7 @@ end
 function gjkCollisionDetection(points1,points2)
 	searchDirection={1,0,0}
 	collPoints={}
-	while trueVar do
+	for itteration1 = 1,32 do
 		crPoint = sub3(gjkSupport(points1,searchDirection),gjkSupport(points2,mul3(searchDirection,-1)))
 		
 		if dot(crPoint,searchDirection)<=0 then
@@ -123,7 +123,7 @@ function gjkCollisionDetection(points1,points2)
 					v[4]=norm3(crossPoints(v[1],v[2],v[3]))
 				end
 				
-				for itteration = 1,32 do
+				for itteration2 = 1,32 do
 					crDist=bigNum -- zero should work
 					for i,v in ipairs(faces) do -- find closest face to origin
 						crDot = dot(v[1],v[4])
@@ -189,6 +189,7 @@ function gjkCollisionDetection(points1,points2)
 			searchDirection=mul3(a,-1)
 		end
 	end
+	-- only reaches here when a timeout happens
 end
 
 function gjkTri(a,b,c)
@@ -416,7 +417,12 @@ function onTick()
 			--summonObject(2)
 			--summonObject(2,{[1]={2,0,0}})
 			--summonObject(2,{[1]={-2,0,0}})
-			summonObject(4,{[1]={0,-5,0},[7]=0,[8]=0})
+			
+			summonObject(5,{[1]={-6,0,0}})
+			summonObject(6,{[1]={6,0,0}})
+			
+			summonObject(7,{[1]={0,-5,0},[7]=0,[8]=0})
+			--summonObject(4,{[1]={-20,-5,0},[7]=0,[8]=0})
 		end
 		if gB(31) then
 			camPos[2]=camPos[2]+gN(2)*moveSpeed
@@ -447,6 +453,11 @@ function onTick()
 		if gB(3) then
 			pushForce=maxPushForce
 			pushColour={255,0,0}
+		end
+		if not gB(31) then
+			for i=1,3 do
+				pushColour[i]=mn(pushColour[i]+50,255)
+			end
 		end
 		--cr=0
 		--if gB(4) then
@@ -503,8 +514,8 @@ function onTick()
 			object[1] = add3(object[1],mul3(object[2],deltaTime)) -- apply velocity to position
 			object[2] = add3(object[2],mul3(object[3],deltaTime)) -- apply acceleration to velocity
 			object[3] = mul3(object[12],1) -- reset acceleration to gravity
-			object[2] = mul3(object[2],0.995) -- slow down velocity
-			object[5] = mul3(object[5],0.995) -- slow down rotation
+			object[2] = mul3(object[2],0.9995) -- slow down velocity
+			object[5] = mul3(object[5],0.9995) -- slow down rotation
 		
 			curRotationMatrix = quaternionToMatrix(norm4(object[4]))
 		
@@ -609,7 +620,8 @@ function onTick()
 		collCals = 0
 		for i,object1 in ipairsVar(objects) do
 			for j,object2 in ipairsVar(objects) do
-				if i~=j and dist3(object1[1],object2[1])<=object1[13]+object2[13] then
+				if i~=j and (object1[10]>0 or object2[10]>0 or object1[11]>0 or object2[11]>0)
+				 and dist3(object1[1],object2[1])<=object1[13]+object2[13] then
 					collCals=collCals+1
 					isColliding = gjkCollisionDetection(object1[9],object2[9])
 					--monkeyCollision = gjkCollisionDetection(objects[1][7],objects[2][7])
@@ -793,7 +805,7 @@ function onDraw()
 		stCl(unpack(pushColour))
 		
 		if overalRayHit then
-			recSize=10/collPointCamRelative[3]
+			recSize=30/collPointCamRelative[3]
 			rec(collPointScreenPos[1]+w2-(recSize//2),collPointScreenPos[2]+h2-(recSize//2),recSize,recSize)
 		end
 	end
