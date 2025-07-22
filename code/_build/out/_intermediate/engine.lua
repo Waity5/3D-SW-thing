@@ -92,7 +92,7 @@ function gjkCollisionDetection(points1,points2)
 		
 		collPoints = {crPoint, collPoints[1], collPoints[2], collPoints[3]}
 		
-		local a,b,c,d=unpack(collPoints)
+		a,b,c,d=unpack(collPoints)
 		
 		if d then
 			ab = sub3(b,a)
@@ -105,11 +105,14 @@ function gjkCollisionDetection(points1,points2)
 			adb = cross(ad,ab)
 			
 			if dot(abc, ao)>0 then
-				gjkTri(a,b,c)
+				collPoints = {a,b,c}
+				searchDirection = abc
 			elseif dot(acd, ao)>0 then
-				gjkTri(a,c,d)
+				collPoints = {a,c,d}
+				searchDirection = acd
 			elseif dot(adb, ao)>0 then
-				gjkTri(a,d,b)
+				collPoints = {a,d,b}
+				searchDirection = adb
 			else -- expanded polytope algorithm
 				-- taken from https://github.com/kevinmoran/GJK/blob/master/GJK.h
 				--if trueVar then return "GOOD" end
@@ -181,51 +184,43 @@ function gjkCollisionDetection(points1,points2)
 				return --TIMEOUT
 			end -- expanded polytope algorithm over, now back to the code which will feed it
 		elseif c then
-			gjkTri(a,b,c)
+			ab = sub3(b,a)
+			ac = sub3(c,a)
+			ao = mul3(a,-1)
+			
+			abc = cross(ab,ac)
+			
+			if dot(cross(abc, ac), ao)>0 then -- closest to edge AC
+				collPoints = {a,c}
+				searchDirection = cross(cross(ac, ao), ac)
+			elseif dot(cross(ab, abc), ao)>0 then --closest to edge AB
+				collPoints = {a,b}
+				searchDirection = cross(cross(ab, ao), ab)
+			else
+				if dot(abc, ao)>0 then
+					--collPoints = {a,b,c} --above triangle
+					searchDirection = abc;
+				else
+					collPoints = {a,c,b} --below triangle
+					searchDirection = mul3(abc,-1)
+				end
+			end
 		elseif b then
-			gjkLine(a,b)
+			ab = sub3(b,a)
+			ao = mul3(a,-1)
+			
+			if dot(ab, ao)>0 then
+				searchDirection = cross(cross(ab, ao), ab)
+			else
+				collPoints = {a}
+				searchDirection = ao
+			end
 		else
 			collPoints={a}
 			searchDirection=mul3(a,-1)
 		end
 	end
 	-- only reaches here when a timeout happens
-end
-
-function gjkTri(a,b,c)
-	ab = sub3(b,a)
-	ac = sub3(c,a)
-	ao = mul3(a,-1)
-	
-	abc = cross(ab,ac)
-	
-	if dot(cross(abc, ac), ao)>0 then -- closest to edge AC
-		collPoints = {a,c}
-		searchDirection = cross(cross(ac, ao), ac)
-	elseif dot(cross(ab, abc), ao)>0 then --closest to edge AB
-		collPoints = {a,b}
-		searchDirection = cross(cross(ab, ao), ab)
-	else
-		if dot(abc, ao)>0 then
-			collPoints = {a,b,c} --above triangle
-			searchDirection = abc;
-		else
-			collPoints = {a,c,b} --below triangle
-			direction = mul3(abc,-1)
-		end
-	end
-end
-
-function gjkLine(a,b)
-	ab = sub3(b,a)
-	ao = mul3(a,-1)
-	
-	if dot(ab, ao)>0 then
-		searchDirection = cross(cross(ab, ao), ab)
-	else
-		collPoints = {a}
-		searchDirection = ao
-	end
 end
 
 function summonObject(index,conditions)

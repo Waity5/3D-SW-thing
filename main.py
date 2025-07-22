@@ -51,14 +51,14 @@ if __name__ == '__main__':
 
         scale = 1
 
-        print(len(your_mesh.v0), "triangles")
+        #print(len(your_mesh.v0), "triangles")
         points = list(your_mesh.v0)+list(your_mesh.v1)+list(your_mesh.v2)#your_mesh.points
         points = [tuple(i) for i in points]
         points = list(set(points))
         phys_points = list(phys_mesh.v0)+list(phys_mesh.v1)+list(phys_mesh.v2)#your_mesh.points
         phys_points = [tuple(i) for i in phys_points]
         phys_points = list(set(phys_points))
-        print(len(phys_points),"phys points")
+        #print(len(phys_points),"phys points")
         
         #print(points)
         #vectors = your_mesh.vectors*scale
@@ -99,7 +99,7 @@ if __name__ == '__main__':
             total_points += 1
             max_dist = max(max_dist, dist(i,(0,0,0)))
         points_phys_end = total_points
-        print(max_dist,"max dist")
+        #print(max_dist,"max dist")
 
         #pnt = ""
         #for i in vectors_indexed:
