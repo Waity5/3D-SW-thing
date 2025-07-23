@@ -38,15 +38,15 @@ M={}
 romCr=1
 levelCr=3
 stg=1
-loaded=falseVar
+--loaded=falseVar
 init=trueVar
 httpTk=0
 tick=0
-camPos={0,0,-3}
+camPos={0,1,-3}
 camRot={0,0,0}
 tickRate=62.5
 angleConvert=pi/180
-moveSpeed=5/tickRate
+moveSpeed=3/tickRate
 rotateSpeed=90*angleConvert/tickRate
 fov=90*angleConvert
 screenScale=1
@@ -404,20 +404,26 @@ function onTick()
 		tick = tick+1
 		if init then
 			objects={}
-			for i=-1,1 do
-				for j=-1,1 do
-					summonObject(2,{[1]={i*2.5,0,j*2.5}})
-				end
-			end
+			--for i=-1,1 do
+			--	for j=-1,1 do
+			--		summonObject("blender_cube",{[1]={i*2.5,0,j*2.5}})
+			--	end
+			--end
 			--summonObject(2)
 			--summonObject(2,{[1]={2,0,0}})
 			--summonObject(2,{[1]={-2,0,0}})
 			
-			summonObject(5,{[1]={-6,0,0}})
-			summonObject(6,{[1]={6,0,0}})
+			--summonObject("cylinder",{[1]={-6,0,0}})
+			--summonObject("utah_teapot",{[1]={6,0,0}})
 			
-			summonObject(7,{[1]={0,-5,0},[7]=0,[8]=0})
+			summonObject("widest_cube",{[1]={0,-1,0},[7]=0,[8]=0})
 			--summonObject(4,{[1]={-20,-5,0},[7]=0,[8]=0})
+			
+			for i=1,4 do
+				for j=1,i do
+					summonObject("bowling_pin",{[1]={(j-i/2-0.5)*0.3,0.15,(i-1)*sqrt(0.3^2-0.15^2)},[7]=100,[8]=5000,[9]={0,-1,0}})
+				end
+			end
 		end
 		if gB(31) then
 			camPos[2]=camPos[2]+gN(2)*moveSpeed
@@ -436,9 +442,9 @@ function onTick()
 		--end
 		pushForce=0
 		if gB(31) then
-			maxPushForce=0.5
+			maxPushForce=0.05
 		else
-			maxPushForce=0.1
+			maxPushForce=0.01
 		end
 		pushColour={255,255,255}
 		if gB(1) then

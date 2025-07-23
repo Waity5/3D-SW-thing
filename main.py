@@ -14,8 +14,8 @@ if __name__ == '__main__':
     packets = []
     curmax = 8192
 
-    objects=["monkey","blender_cube","wide_cube","wider_cube","cylinder","utah_teapot","widest_cube"]
-    object_colours=[(0,255,0),(255,0,0),(255,255,255),(255,255,255),(0,0,255),(0,255,0),(255,255,255)]
+    objects=["monkey","blender_cube","wide_cube","wider_cube","cylinder","utah_teapot","widest_cube","bowling_pin"]
+    object_colours=[(0,255,0),(255,0,0),(255,255,255),(255,255,255),(0,0,255),(0,255,0),(255,255,255),(255,255,255)]
     min_brightness = 0.2
 
     total_points = 0
@@ -127,6 +127,8 @@ if __name__ == '__main__':
             normalz = ((x2-x1)*(y3-y1))-((y2-y1)*(x3-x1))
             normalDist = sqrt((normalx**2)+(normaly**2)+(normalz**2))
             unitNormaly = normaly/normalDist
+            if normalDist == 0:
+                print((x1,y1,z1),(x2,y2,z2),(x3,y3,z3))
             shade = max((unitNormaly+1)/2,min_brightness)
             cur_colour = tuple([colour[i]*shade for i in range(3)])
             
@@ -175,6 +177,9 @@ if __name__ == '__main__':
         file.close()
         #print(code)
 
+        for j in range(len(objects)):
+            code = code.replace('"'+objects[j]+'"',str(j+1))
+
         if False:
             m_var=code[code.find("={}")-1]
             
@@ -201,7 +206,7 @@ if __name__ == '__main__':
         end = text.find(find_end,start)
         if i==1:
             None
-            print(code.split("\n")[51-1])
+            print(code.split("\n")[121-1])
             
 
         assert start>0 and end>0, "Code insertion search terms not in base vehicle file"
