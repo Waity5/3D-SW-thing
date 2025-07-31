@@ -5,6 +5,8 @@ from copy import deepcopy as dcopy
 import os
 import numpy
 from stl import mesh
+from scripting.assembler import assemble
+
 
 def sq(a):
     factor=2.2
@@ -13,6 +15,15 @@ def sq(a):
 if __name__ == '__main__':
     packets = []
     curmax = 8192
+
+    
+    file = open("scripting/assembly.txt")
+    text = file.read()
+    file.close()
+
+    machine_code,script_markers = assemble(text)
+
+    
 
     objects=["monkey","blender_cube","wide_cube","wider_cube","cylinder","utah_teapot","widest_cube","bowling_pin"]
     object_colours=[(0,255,0),(255,0,0),(255,255,255),(255,255,255),(0,0,255),(0,255,0),(255,255,255),(255,255,255)]
@@ -24,7 +35,7 @@ if __name__ == '__main__':
     for index in range(len(objects)):
 
         cur_object = objects[index]
-        
+
         
 
         # Using an existing stl file:
@@ -167,55 +178,70 @@ if __name__ == '__main__':
     text = file.read()
     file.close()
 
-    path_root = ".\\"+"code\\"#+"_build\\out\\release\\"
+    
     print()
 
-    for i in range(3):
-        name = ["render.lua","engine.lua","sound.lua"][i]
-        file = open(path_root+name)
-        code = file.read()
-        file.close()
-        #print(code)
+    
+    name = "engine.lua"
+    file = open(name)
+    code = file.read()
+    file.close()
+    #print(code)
 
-        for j in range(len(objects)):
-            code = code.replace('"'+objects[j]+'"',str(j+1))
+    for j in range(len(objects)):
+        code = code.replace('"'+objects[j]+'"',str(j+1))
 
-        if False:
-            m_var=code[code.find("={}")-1]
-            
-            for j in range(0,30):
-                cur=m_var+"["+str(j)+"]"
-                
-                if cur in code:
-                    print(cur,"found",code.count(cur),"times")
-                
-        print(name)
-        if code != "":
-            code = compress(code,print_vars=i==-1,delete_newlines=True)
-        print()
+    for j in script_markers:
+        code = code.replace('"'+j+'"',str(script_markers[j]))
+
+    if False:
+        m_var=code[code.find("={}")-1]
         
-        find_start = ["""<c type="56"><object id="4" script='""",
-                      """<c type="56"><object id="130" script='""",
-                      """<c type="56"><object id="139" script='""",
-                      ][i]
-        find_end = ["""'>""",
-                    """'>""",
-                    """'>"""
-                    ][i]
-
-        start = text.find(find_start)
-        end = text.find(find_end,start)
-        if i==1:
-            None
-            file = open("2.lua",mode="w", newline='\n')
-            file.write(code)
-            file.close()
-            print(code.split("\n")[121-1])
+        for j in range(0,30):
+            cur=m_var+"["+str(j)+"]"
             
+            if cur in code:
+                print(cur,"found",code.count(cur),"times")
 
-        assert start>0 and end>0, "Code insertion search terms not in base vehicle file"
+
+    simulator_code,junk,junk = compress(code,print_vars=i==-1,silent=True)
+
+    
+    file = open("simulator\engine.lua",mode="w", newline='\n')
+    file.write(simulator_code)
+    file.close()
+
+    
+            
+    print(name)
+    code, variables, replacements = compress(code,print_vars=i==-1,delete_newlines=True,lua_5_3_only_compression=True)
+    print()
+
+    for i in machine_code:
+        for j in range(len(i)):
+            if i[j] in variables:
+                i[j] = replacements[variables.index(i[j])]
+            if i[j] in objects:
+                i[j] = objects.index(i[j])+1
+
+
+    for i in machine_code:
+        #print(i)
+        packets.append((5,i))
+    
+    find_start = """<c type="56"><object id="4" script='"""
+    find_end = """'>"""
+
+    start = text.find(find_start)
+    end = text.find(find_end,start)
+    if False:
+        None
+        print(code.split("\n")[121-1])
         
-        text = text[:start+len(find_start)]+code+text[end:]
+
+    assert start>0 and end>0, "Code insertion search terms not in base vehicle file"
+    
+    text = text[:start+len(find_start)]+code+text[end:]
 
     #packets = [(1,(1,2)), (1,(1,2)), (1,(1,2))]
 
@@ -226,6 +252,7 @@ if __name__ == '__main__':
     tt=0
     t1=0
     num_packets = len(packets)
+    num_packets = len(packets)
     for index in range(num_packets+1):
         if index<num_packets:
             i = packets[index]
@@ -235,20 +262,25 @@ if __name__ == '__main__':
             #    print(i)
         if len(cur)==0 or len(cur[0][1])!=len(i[1]) or cur[0][0]!=i[0] or index==num_packets:
             if len(cur)>0:
-                out_numbs = [cur[0][0],len(cur[0][1]),len(cur)]
+                out_vars = [cur[0][0],len(cur[0][1]),len(cur)]
                 for j in cur:
                     for k in j[1]:
                         try:
-                            assert type(k)==type(1.0) or type(k)==type(1) or type(k)==type(numpy.float32()) or type(k)==type(numpy.float64())
+                            assert type(k)==type(1.0) or type(k)==type(1) or type(k)==type(numpy.float32()) or type(k)==type(numpy.float64()) or type(k)==type("")
                         except:
                             print(k,type(k))
                             halt
                         #k=int(k)
-                        out_numbs.append(k)
 
-                for j in out_numbs:
-                    temp = str(round(j,3))
-                    temp = temp[:-1]+chr(ord(temp[-1])+17)
+                        out_vars.append(k)
+
+                for j in out_vars:
+                    if type(j) == type(""):
+                        temp = j + "!"
+                    else:
+                        temp = str(round(j,3))
+                        temp = temp[:-1]+chr(ord(temp[-1])-13)
+                    
                     temp_len = len(temp)
                     if len(parts)==0 or len(parts[-1])+temp_len>curmax:
                         if len(parts)>0:
@@ -291,6 +323,10 @@ if __name__ == '__main__':
     
     for i in range(len(parts)):
         contents += (text_block[0]+str(i+1)+text_block[1]+parts[i]+text_block[2]+str((i+1)*0.5)+text_block[3])
+
+        file = open("simulator/textboxes/"+str(i+1)+".txt",mode="w", newline='\n')
+        file.write(parts[i])
+        file.close()
 
     
 

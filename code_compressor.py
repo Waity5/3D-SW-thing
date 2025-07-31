@@ -1,4 +1,4 @@
-def compress(text,print_vars=False,delete_newlines=False):
+def compress(text,print_vars=False,delete_newlines=False,lua_5_3_only_compression=False,silent=False):
     text=" "+text
 
     exclude = ["function","return","end","getNumber","getBool","if","then","for","do","while","local",
@@ -6,7 +6,7 @@ def compress(text,print_vars=False,delete_newlines=False):
                "math","input","output","true","false","ipairs","httpReply",
                "type","table","nil",
                "screen","async","property","string","break",
-               "_ENV",
+               "_ENV","print",
                ]
     include = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
     includeNum = "0123456789"
@@ -17,7 +17,8 @@ def compress(text,print_vars=False,delete_newlines=False):
     variables = []
     counts = []
 
-    print("\t",len(text),"initial characters")
+    if not silent:
+        print("\t",len(text),"initial characters")
     
     while text.count("--")>0:
         start = text.index("--")
@@ -108,7 +109,8 @@ def compress(text,print_vars=False,delete_newlines=False):
         variables = [variables[i]+(i,) for i in range(len(variables))]
         print(variables)
     variables=[i[1] for i in variables]
-    print("\t",len(variables),"variables")
+    if not silent:
+        print("\t",len(variables),"variables")
     replacements = []
     offset = 0
 
@@ -150,14 +152,15 @@ def compress(text,print_vars=False,delete_newlines=False):
         if i == '"':
             is_string = not is_string
 
-    for i in ["then","or"]:
-        cur_index=0
-        while text.find(" "+i,cur_index)>-1:
-            cur_index = text.find(" "+i,cur_index)
-            if text[cur_index-1] in includeNum:
-                text = text[:cur_index] + text[cur_index+1:]
-            #print([text[cur_index-1:cur_index+10]])
-            cur_index += 1
+    if lua_5_3_only_compression:
+        for i in ["then","or"]:
+            cur_index=0
+            while text.find(" "+i,cur_index)>-1:
+                cur_index = text.find(" "+i,cur_index)
+                if text[cur_index-1] in includeNum:
+                    text = text[:cur_index] + text[cur_index+1:]
+                #print([text[cur_index-1:cur_index+10]])
+                cur_index += 1
     text=text[1:]
 
     for index in range(len(text)-3,-1,-1):
@@ -181,17 +184,17 @@ def compress(text,print_vars=False,delete_newlines=False):
     if text[-1] == "\n":
         text = text[:-1]
     
+    if not silent:
+        print("\t",len(text),"end characters")
 
-    print("\t",len(text),"end characters")
-
-    return text
+    return text, variables, replacements
 
 if __name__ == '__main__':
     file = open("main.lua")
     text = file.read()
     file.close()
 
-    text = compress(text,delete_newlines = True)
+    text, variables, replacements = compress(text,delete_newlines = True)
     
     file = open("out.txt",mode="w", newline='\n')
     file.write(text)

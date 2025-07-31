@@ -1,4 +1,3 @@
-
 m=math
 mx=m.max
 mn=m.min
@@ -52,6 +51,41 @@ fov=90*angleConvert
 screenScale=1
 tick=0
 deltaTime=1/62.5
+
+function executeScript(line,opcode) -- do not input anything for opcode
+	_ENVvar = _ENV
+	while opcode ~= 0 do
+		opcode,arg1,arg2,arg3 = unpack(M[5][line])
+		arg2var,arg3var = _ENVvar[arg2],_ENVvar[arg3]
+		--print(line,opcode,arg1,arg2,arg3,arg2var,arg3var)
+		
+		if opcode == 1 then -- simple set
+			_ENVvar[arg1] = arg2
+		elseif opcode == 2 then -- copy to table
+			_ENVvar[arg1][arg2var] = arg3var
+		elseif opcode == 3 then -- copy from table
+			_ENVvar[arg1] = arg2var[arg3var]
+		elseif opcode == 4 then -- make table
+			_ENVvar[arg1] = {} -- can't be done with simple set
+		elseif opcode == 5 then -- sub
+			_ENVvar[arg1] = arg2var-arg3var
+		elseif opcode == 6 then -- div
+			_ENVvar[arg1] = arg2var/arg3var
+		elseif opcode == 7 then -- function call
+			_ENVvar[arg1] = arg2var(unpack(arg3var))
+		elseif opcode == 8 then -- array length
+			_ENVvar[arg1] = #arg2var
+		elseif opcode == 9 then -- conditional jump
+			if _ENVvar[arg1] then
+				line = arg2var-1
+			end
+		elseif opcode == 10 then
+			_ENVvar[arg1] = arg2var>arg3var
+		end
+		
+		line = line + 1
+	end
+end
 
 function getMovementPerUnitForce(object,position,direction)
 	trueContactPoint1 = sub3(position,object[1])
@@ -368,8 +402,11 @@ function onTick()
 			cr=str.sub(rom,i,i)
 			while cr~=""do
 				pos=str.byte(cr)
-				if pos>64 then
-					nm=(nm..pos-65)+0
+				if pos<45 then
+					if pos>33 then
+						nm=(nm..pos-35)+0
+					end
+					--print(nm,stg,count,curLength)
 					if stg==1 then
 						curIndex=nm
 						M[nm]=M[nm]or{}
@@ -405,23 +442,29 @@ function onTick()
 	if loaded then
 		tick = tick+1
 		if init then
-			objects={}
-			for i=-1,1 do
-				for j=-1,1 do
-					summonObject(2,{[1]={i*2.5,0,j*2.5}})
-				end
-			end
+			executeScript(1)
+			executeScript("initFunc")
+			
+			--objects={}
+			--for i=-1,1 do
+			--	for j=-1,1 do
+			--		summonObject(2,{[1]={i*2.5,0,j*2.5}})
+			--	end
+			--end
 			--summonObject(2)
 			--summonObject(2,{[1]={2,0,0}})
 			--summonObject(2,{[1]={-2,0,0}})
 			
-			summonObject(5,{[1]={-6,0,0}})
-			summonObject(6,{[1]={6,0,0}})
+			--summonObject(5,{[1]={-6,0,0}})
+			--summonObject(6,{[1]={6,0,0}})
 			
-			summonObject(7,{[1]={0,-5,0},[7]=0,[8]=0})
-			summonObject(8,{[1]={6,-3.85,-4},[7]=0.75,[8]=50})
+			--summonObject("widest_cube",{[1]={0,-5,0},[7]=0,[8]=0})
+			--summonObject(8,{[1]={6,-3.85,-4},[7]=0.75,[8]=50})
 			--summonObject(4,{[1]={-20,-5,0},[7]=0,[8]=0})
 		end
+		
+		executeScript("initFunc")
+		
 		if gB(31) then
 			camPos[2]=camPos[2]+gN(2)*moveSpeed
 		else
