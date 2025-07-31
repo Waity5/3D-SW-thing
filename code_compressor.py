@@ -5,11 +5,13 @@ def compress(text,print_vars=False,delete_newlines=False):
                "else","elseif","and","or","not","in","onDraw","onDraw","onTick",
                "math","input","output","true","false","ipairs","httpReply",
                "type","table","nil",
-               "screen","async","property","string","break"
+               "screen","async","property","string","break",
+               "_ENV",
                ]
     include = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
     includeNum = "0123456789"
     point_exclude = ".:"
+    operations = "+-*/%^~=()[]#{}.<>,"
     is_string = False
 
     variables = []
@@ -27,6 +29,8 @@ def compress(text,print_vars=False,delete_newlines=False):
 
     text = text.replace("\t","")
 
+    text = text.replace("0.",".")
+
     valid = not delete_newlines
     while not valid:
         new = text.replace("\n\n","\n")
@@ -36,6 +40,12 @@ def compress(text,print_vars=False,delete_newlines=False):
     valid = False
     while not valid:
         new = text.replace(" \n","\n")
+        valid = new == text
+        text = new
+
+    valid = False
+    while not valid:
+        new = text.replace("  "," ")
         valid = new == text
         text = new
 
@@ -149,6 +159,27 @@ def compress(text,print_vars=False,delete_newlines=False):
             #print([text[cur_index-1:cur_index+10]])
             cur_index += 1
     text=text[1:]
+
+    for index in range(len(text)-3,-1,-1):
+        i=text[index:index+3]
+        remove_middle = False
+        
+        if i[1] in [" ","\n"]:
+            if i[0] in operations and (i[2] in include or i[2] in includeNum):
+                remove_middle = True
+                
+            if (i[0] in include or i[0] in includeNum) and i[2] in operations:
+                remove_middle = True
+
+            if i[0] in operations or i[2] in operations:
+                remove_middle = True
+
+        if remove_middle:
+            text = text[:index+1] + text[index+2:]
+
+
+    if text[-1] == "\n":
+        text = text[:-1]
     
 
     print("\t",len(text),"end characters")
@@ -156,11 +187,11 @@ def compress(text,print_vars=False,delete_newlines=False):
     return text
 
 if __name__ == '__main__':
-    file = open("in.txt")
+    file = open("main.lua")
     text = file.read()
     file.close()
 
-    text = compress(text)
+    text = compress(text,delete_newlines = True)
     
     file = open("out.txt",mode="w", newline='\n')
     file.write(text)
