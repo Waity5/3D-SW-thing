@@ -18,15 +18,15 @@ if __name__ == '__main__':
 
     
     file = open("scripting/assembly.txt")
-    text = file.read()
+    assembly_code = file.read()
     file.close()
 
-    machine_code,script_markers = assemble(text)
+    machine_code,script_markers = assemble(assembly_code)
 
     
 
     objects=["monkey","blender_cube","wide_cube","wider_cube","cylinder","utah_teapot","widest_cube","bowling_pin"]
-    object_colours=[(0,255,0),(255,0,0),(255,255,255),(255,255,255),(0,0,255),(0,255,0),(255,255,255),(255,255,255)]
+    object_colours=[(0,255,0),(255,0,255),(255,255,255),(255,255,255),(0,0,255),(0,255,0),(255,255,255),(255,255,255)]
     min_brightness = 0.2
 
     total_points = 0
@@ -229,7 +229,7 @@ if __name__ == '__main__':
         #print(i)
         packets.append((5,i))
     
-    find_start = """<c type="56"><object id="4" script='"""
+    find_start = """<c type="56"><object id="130" script='"""
     find_end = """'>"""
 
     start = text.find(find_start)

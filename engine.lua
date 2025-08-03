@@ -463,43 +463,43 @@ function onTick()
 			--summonObject(4,{[1]={-20,-5,0},[7]=0,[8]=0})
 		end
 		
-		executeScript("initFunc")
+		executeScript("tickFunc")
 		
-		if gB(31) then
-			camPos[2]=camPos[2]+gN(2)*moveSpeed
-		else
-			camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
-			camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
-		end
+		--if gB(31) then
+			--camPos[2]=camPos[2]+gN(2)*moveSpeed
+		--else
+			--camPos[1]=camPos[1]+(gN(1)*cos(camRot[1]) - gN(2)*sin(camRot[1]))*moveSpeed
+			--camPos[3]=camPos[3]+(gN(1)*sin(camRot[1]) + gN(2)*cos(camRot[1]))*moveSpeed
+		--end
 		--camRot[3]=camRot[3]+gN(1)*rotateSpeed
-		camRot[1]=camRot[1]-gN(3)*rotateSpeed
-		camRot[2]=camRot[2]+gN(4)*rotateSpeed
+		--camRot[1]=camRot[1]-gN(3)*rotateSpeed
+		--camRot[2]=camRot[2]+gN(4)*rotateSpeed
 		--if gB(1) then
 		--	camRot[3]=camRot[3]-rotateSpeed
 		--end
 		--if gB(3) then
 		--	camRot[3]=camRot[3]+rotateSpeed
 		--end
-		pushForce=0
-		if gB(31) then
-			maxPushForce=0.5
-		else
-			maxPushForce=0.1
-		end
-		pushColour={255,255,255}
-		if gB(1) then
-			pushForce=-maxPushForce
-			pushColour={0,0,255}
-		end
-		if gB(3) then
-			pushForce=maxPushForce
-			pushColour={255,0,0}
-		end
-		if not gB(31) then
-			for i=1,3 do
-				pushColour[i]=mn(pushColour[i]+50,255)
-			end
-		end
+		--pushForce=0
+		--if gB(31) then
+		--	maxPushForce=0.5
+		--else
+		--	maxPushForce=0.1
+		--end
+		--pushColour={255,255,255}
+		--if gB(1) then
+		--	pushForce=-maxPushForce
+		--	pushColour={0,0,255}
+		--end
+		--if gB(3) then
+		--	pushForce=maxPushForce
+		--	pushColour={255,0,0}
+		--end
+		--if not gB(31) then
+		--	for i=1,3 do
+		--		pushColour[i]=mn(pushColour[i]+50,255)
+		--	end
+		--end
 		--cr=0
 		--if gB(4) then
 		--	cr=-0.025

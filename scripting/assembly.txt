@@ -14,23 +14,20 @@ negone = -1
 objects = {}
 
 spawningObject = {} -- wide cube
-spawningObjectName = widest_cube
-spawningObject[one] = spawningObjectName
+spawningObject[one] = "widest_cube"
 spawningObjectProp = {}
 spawningObject[two] = spawningObjectProp
 spawningObjectPos = {}
 spawningObjectProp[one] = spawningObjectPos
 spawningObjectPos[one] = zero
-temp1 = -6
-spawningObjectPos[two] = temp1
+spawningObjectPos[two] = -6
 spawningObjectPos[three] = zero
 spawningObjectProp[seven] = zero
 spawningObjectProp[eight] = zero
 
 junk = summonObject(spawningObject)
 
-crConvFac = 2.5
-crConvFac = one / crConvFac
+crConvFac = one / 2.5
 itter1 = -1
 objectSpawingLoop1:
 	itter2 = -1
@@ -38,29 +35,71 @@ objectSpawingLoop1:
 	objectSpawingLoop2:
 		
 		spawningObject = {} -- normal cubes
-		spawningObjectName = blender_cube
+		spawningObjectName = "blender_cube"
 		spawningObject[one] = spawningObjectName
 		spawningObjectProp = {}
 		spawningObject[two] = spawningObjectProp
 		spawningObjectPos = {}
 		spawningObjectProp[one] = spawningObjectPos
-		temp1 = itter1/crConvFac
-		temp2 = itter2/crConvFac
-		spawningObjectPos[one] = temp1
+		spawningObjectPos[one] = itter1/crConvFac
 		spawningObjectPos[two] = zero
-		spawningObjectPos[three] = temp2
+		spawningObjectPos[three] = itter2/crConvFac
 		
 		junk = summonObject(spawningObject)
 		
 		itter2 = itter2 - negone
-		temp1 = two > itter2
-		temp1 ~ objectSpawingLoop2
+		temp = two > itter2
+		temp ~ objectSpawingLoop2
 	
 	itter1 = itter1 - negone
-	temp1 = two > itter1
-	temp1 ~ objectSpawingLoop1
+	temp = two > itter1
+	temp ~ objectSpawingLoop1
 exit
 
 tickFunc:
 
-end
+moveSpeedInv = 1/moveSpeed
+rotateSpeedInv = 1/rotateSpeed
+
+gB31 = gB({31})
+gB31 ~ holdingSpace
+	camPos[one]  = camPos[one]  - (zero - (gN({one})/(one/cos({camRot[one]})) - gN({two})/(one/sin({camRot[one]})))) / moveSpeedInv
+	camPos[three]= camPos[three] - (zero - (gN({one})/(one/sin({camRot[one]})) - (zero - gN({two})/(one/cos({camRot[one]}))))) / moveSpeedInv
+	maxPushForce = 0.1
+	otherPushColours = 50
+	one ~ endCamMove
+holdingSpace:
+	camPos[two]=camPos[two] - (zero-gN({two})) / moveSpeedInv
+	maxPushForce = 0.5
+	otherPushColours = 0
+endCamMove:
+
+camRot[one]=camRot[one]-gN({three})/rotateSpeedInv
+camRot[two]=camRot[two]-(zero-gN({four}))/rotateSpeedInv
+
+pushForce = 0
+pushColour = {}
+gB1 = gB({1})
+gB1 ~ isGB1
+gB3 = gB({3})
+gB3 ~ isGB3
+	pushColour[one] = 255
+	pushColour[two] = 255
+	pushColour[three] = 255
+	one ~ endOfPush
+isGB1:
+	pushForce = zero - maxPushForce
+	pushColour[one] = otherPushColours
+	pushColour[two] = otherPushColours
+	pushColour[three] = 255
+	one ~ endOfPush
+isGB3:
+	pushForce = maxPushForce - zero
+	pushColour[one] = 255
+	pushColour[two] = otherPushColours
+	pushColour[three] = otherPushColours
+endOfPush:
+
+
+
+exit
