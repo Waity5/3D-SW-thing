@@ -92,6 +92,12 @@ function getMovementPerUnitForce(object,position,direction)
 	return dot(cross(mul3(cross(trueContactPoint1,direction),object[11]),trueContactPoint1),direction) + object[10]
 end
 
+function applyInstantMovement(object,position,force)
+	collPointObjectRelative=sub3(position,object[1])
+	object[4]=updateQuaternionByVector(object[4],mul3(cross(collPointObjectRelative,force),-object[11]))
+	object[1]=add3(object[1],mul3(force,object[10]))
+end
+
 function applyForce(object,position,force)
 	collPointObjectRelative=sub3(position,object[1])
 	--collDirObjectRelative=divVectorByRotationMatrix(cameraRotationVector,curRotationMatrix)
@@ -296,7 +302,8 @@ function summonObject(index,conditions)
 		conditions[9]or{0,0,0}, -- 12 gravity
 		M[1][index][7], -- 13 max point dist from object's origin
 		index, -- 14
-		{}, -- 15
+		{}, -- 15 previous collision points, not used
+		{}, -- 16 rotation matrix
 	}
 	objects[#objects+1]=newObject
 end
@@ -336,7 +343,7 @@ function updateQuaternionByVector(quat,vec)
 	for i=1,4 do
 		newQuat[i]=quat[i] + newQuat[i]*0.5
 	end
-	return newQuat
+	return norm4(newQuat)
 end
 
 function multQuaternionByQuaternion(quat1,quat2)
@@ -551,20 +558,20 @@ function onTick()
 		
 		for index = 1,#objects do
 			object = objects[index]
-			object[4] = norm4(updateQuaternionByVector(object[4],mul3(object[5],-deltaTime))) -- apply rotational velocity to orientation, not sure why the minus is needed
+			object[4] = updateQuaternionByVector(object[4],mul3(object[5],-deltaTime)) -- apply rotational velocity to orientation, not sure why the minus is needed
 			object[1] = add3(object[1],mul3(object[2],deltaTime)) -- apply velocity to position
 			object[2] = add3(object[2],mul3(object[3],deltaTime)) -- apply acceleration to velocity
 			object[3] = mul3(object[12],1) -- reset acceleration to gravity
-			object[2] = mul3(object[2],0.9995) -- slow down velocity
-			object[5] = mul3(object[5],0.9995) -- slow down rotation
+			object[2] = mul3(object[2],0.9995) -- slow down velocity, optional
+			object[5] = mul3(object[5],0.9995) -- slow down rotation, optional
 		
-			curRotationMatrix = quaternionToMatrix(norm4(object[4]))
+			object[16] = quaternionToMatrix(norm4(object[4]))
 		
 			
 			for i=7,9,2 do
 				for j=1,#object[i] do
 					crPoint=object[i][j]
-					crPoint[2] = multVectorByMatrix(crPoint[1],curRotationMatrix)
+					crPoint[2] = multVectorByMatrix(crPoint[1],object[16])
 					crPoint[2]=add3(crPoint[2],object[1])
 					crPoint[3]=sub3(crPoint[2],camPos)
 					
@@ -677,86 +684,89 @@ function onTick()
 						collPoints1 = pointList
 						gjkSupport(collMesh2,mul3(isColliding[1],-1))
 						collPoints2 = pointList
-						newAndOldCollPoints[#newAndOldCollPoints+1] = {collPoints1,collPoints2}
-						goodCollPoints = {}
+						--newAndOldCollPoints[#newAndOldCollPoints+1] = {collPoints1,collPoints2}
+						--goodCollPoints = {}
 						
-						for k,collPoints in ipairsVar(newAndOldCollPoints) do
-							collPoints1,collPoints2 = unpack(collPoints)
+						--for k,collPoints in ipairsVar(newAndOldCollPoints) do
+						--	collPoints1,collPoints2 = unpack(collPoints)
 							
-							if #collPoints1==1 then
-								trueContactPoint = collMesh1[collPoints1[1]][2]
-							elseif #collPoints2==1 then
-								trueContactPoint = collMesh2[collPoints2[1]][2]
-							elseif #collPoints1==2 and #collPoints2==2 then -- https://en.wikipedia.org/wiki/Skew_lines#Distance
-								direction1=sub3(collMesh1[collPoints1[2]][2],collMesh1[collPoints1[1]][2])
-								direction2=sub3(collMesh2[collPoints2[2]][2],collMesh2[collPoints2[1]][2])
-								normal2 = cross(direction2,cross(direction1,direction2))
-								trueContactPoint = add3(collMesh1[collPoints1[1]][2],
-								mul3(direction1,
-								dot(sub3(collMesh2[collPoints2[1]][2],collMesh1[collPoints1[1]][2]),normal2) / dot(direction1,normal2)))
-							else
-								trueContactPoint = collMesh1[collPoints1[1]][2]
-							end
-							--velocity1 = object1[2]
-							--velocity2 = object2[2]
+						if #collPoints1==1 then
+							trueContactPoint = collMesh1[collPoints1[1]][2]
+						elseif #collPoints2==1 then
+							trueContactPoint = collMesh2[collPoints2[1]][2]
+						elseif #collPoints1==2 and #collPoints2==2 then -- https://en.wikipedia.org/wiki/Skew_lines#Distance
+							direction1=sub3(collMesh1[collPoints1[2]][2],collMesh1[collPoints1[1]][2])
+							direction2=sub3(collMesh2[collPoints2[2]][2],collMesh2[collPoints2[1]][2])
+							normal2 = cross(direction2,cross(direction1,direction2))
+							trueContactPoint = add3(collMesh1[collPoints1[1]][2],
+							mul3(direction1,
+							dot(sub3(collMesh2[collPoints2[1]][2],collMesh1[collPoints1[1]][2]),normal2) / dot(direction1,normal2)))
+						else
+							trueContactPoint = object1[13]>object2[13] and collMesh2[collPoints2[1]][2] or collMesh1[collPoints1[1]][2]
+						end
+						--velocity1 = object1[2]
+						--velocity2 = object2[2]
+						velocity1 = add3(cross(object1[5],sub3(trueContactPoint,object1[1])),object1[2])
+						velocity2 = add3(cross(object2[5],sub3(trueContactPoint,object2[1])),object2[2])
+						totalVelocity = sub3(velocity1,velocity2)
+						
+						totalVelocityNormal = dot(isColliding[1],totalVelocity)
+						if totalVelocityNormal>0 then
+							--goodCollPoints[#goodCollPoints+1] = collPoints
+							
+							--totalInverseResistance = object1[10]+object2[10]
+							--totalForce = mul3(isColliding[1],totalVelocity*(0.5-0.25*(abs(object1[10]-object2[10])/totalInverseResistance))) -- the inverse resistance maths causes a mult of 0.5 between identically weighted objects
+							-- and a multiplier of 0.25 between very differently weighted objects
+							--applyForce(object1,trueContactPoint,mul3(totalForce,-1))
+							--applyForce(object2,trueContactPoint,totalForce)
+							
+							--object1[1] = add3(object1[1],mul3(isColliding[1],-isColliding[2]*object1[10]/totalInverseResistance))
+							--object2[1] = add3(object2[1],mul3(isColliding[1],isColliding[2]*object2[10]/totalInverseResistance))
+							
+							movementFromPushing = getMovementPerUnitForce(object1,trueContactPoint,isColliding[1]) + getMovementPerUnitForce(object2,trueContactPoint,isColliding[1])
+							-- ^ should technically be velocityChangeFromPushing, but that's a bit long for my tastes
+							
+							desiredChangeInVelocity = totalVelocityNormal*1
+							pushForce = desiredChangeInVelocity/movementFromPushing
+							
+							applyForce(object1,trueContactPoint,mul3(isColliding[1],-pushForce))
+							applyForce(object2,trueContactPoint,mul3(isColliding[1],pushForce))
+							
+							-- re-calculating velocites since they will have changed
+							-- this step bugs me but it produces inaccurate & visibly wrong results otherwise
+							
 							velocity1 = add3(cross(object1[5],sub3(trueContactPoint,object1[1])),object1[2])
 							velocity2 = add3(cross(object2[5],sub3(trueContactPoint,object2[1])),object2[2])
 							totalVelocity = sub3(velocity1,velocity2)
 							
 							totalVelocityNormal = dot(isColliding[1],totalVelocity)
-							if totalVelocityNormal>0 then
-								goodCollPoints[#goodCollPoints+1] = collPoints
+							
+							totalVelocityTangential = sub3(totalVelocity,mul3(isColliding[1],totalVelocityNormal))
+							
+							totalSpeedTangential = dist3(totalVelocityTangential,{0,0,0})
+							if totalSpeedTangential>0.001 then
+								unitFriction = norm3(totalVelocityTangential)
+								movementFromFriction = getMovementPerUnitForce(object1,trueContactPoint,unitFriction) + getMovementPerUnitForce(object2,trueContactPoint,unitFriction)
+								frictionForce = mn(totalSpeedTangential/movementFromFriction, pushForce)
 								
-								--totalInverseResistance = object1[10]+object2[10]
-								--totalForce = mul3(isColliding[1],totalVelocity*(0.5-0.25*(abs(object1[10]-object2[10])/totalInverseResistance))) -- the inverse resistance maths causes a mult of 0.5 between identically weighted objects
-								-- and a multiplier of 0.25 between very differently weighted objects
-								--applyForce(object1,trueContactPoint,mul3(totalForce,-1))
-								--applyForce(object2,trueContactPoint,totalForce)
-								
-								--object1[1] = add3(object1[1],mul3(isColliding[1],-isColliding[2]*object1[10]/totalInverseResistance))
-								--object2[1] = add3(object2[1],mul3(isColliding[1],isColliding[2]*object2[10]/totalInverseResistance))
-								
-								movementFromPushing = getMovementPerUnitForce(object1,trueContactPoint,isColliding[1]) + getMovementPerUnitForce(object2,trueContactPoint,isColliding[1])
-								-- ^ should technically be velocityChangeFromPushing, but that's a bit long for my tastes
-								
-								desiredChangeInVelocity = totalVelocityNormal*1
-								pushForce = desiredChangeInVelocity/movementFromPushing
-								
-								applyForce(object1,trueContactPoint,mul3(isColliding[1],-pushForce))
-								applyForce(object2,trueContactPoint,mul3(isColliding[1],pushForce))
-								
-								-- re-calculating velocites since they will have changed
-								-- this step bugs me but it produces inaccurate & visibly wrong results otherwise
-								
-								velocity1 = add3(cross(object1[5],sub3(trueContactPoint,object1[1])),object1[2])
-								velocity2 = add3(cross(object2[5],sub3(trueContactPoint,object2[1])),object2[2])
-								totalVelocity = sub3(velocity1,velocity2)
-								
-								totalVelocityNormal = dot(isColliding[1],totalVelocity)
-								
-								totalVelocityTangential = sub3(totalVelocity,mul3(isColliding[1],totalVelocityNormal))
-								
-								totalSpeedTangential = dist3(totalVelocityTangential,{0,0,0})
-								if totalSpeedTangential>0.001 then
-									unitFriction = norm3(totalVelocityTangential)
-									movementFromFriction = getMovementPerUnitForce(object1,trueContactPoint,unitFriction) + getMovementPerUnitForce(object2,trueContactPoint,unitFriction)
-									frictionForce = mn(totalSpeedTangential/movementFromFriction, pushForce)
-									
-									applyForce(object1,trueContactPoint,mul3(unitFriction,-frictionForce))
-									applyForce(object2,trueContactPoint,mul3(unitFriction,frictionForce))
-								end
-								
-								if k==1 then
-									totalInverseResistance = object1[10]+object2[10]
-									object1[1] = add3(object1[1],mul3(isColliding[1],-isColliding[2]*object1[10]/totalInverseResistance))
-									object2[1] = add3(object2[1],mul3(isColliding[1],isColliding[2]*object2[10]/totalInverseResistance))
-								end
+								applyForce(object1,trueContactPoint,mul3(unitFriction,-frictionForce))
+								applyForce(object2,trueContactPoint,mul3(unitFriction,frictionForce))
 							end
+							
+							--totalInverseResistance = object1[10]+object2[10]
+							--object1[1] = add3(object1[1],mul3(isColliding[1],-isColliding[2]*object1[10]/totalInverseResistance))
+							--object2[1] = add3(object2[1],mul3(isColliding[1],isColliding[2]*object2[10]/totalInverseResistance))
+							
+							pushMovement = isColliding[2]/movementFromPushing
+							
+							applyInstantMovement(object1,trueContactPoint,mul3(isColliding[1],-pushMovement))
+							applyInstantMovement(object2,trueContactPoint,mul3(isColliding[1],pushMovement))
 						end
-						if #goodCollPoints>3 then
-							tableRemove(goodCollPoints,1)
-						end
-						object1[15][j] = goodCollPoints
+						--end
+						--if #goodCollPoints>3 then
+						--	tableRemove(goodCollPoints,1)
+						--end
+						--object1[15][j] = goodCollPoints
 					end
 				end
 			end
